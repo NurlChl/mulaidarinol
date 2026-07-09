@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 // Next.js 16 Proxy convention: named export proxy function
-export const proxy = auth((req) => {
+export const proxy = auth((req: any) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   
