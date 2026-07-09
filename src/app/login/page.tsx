@@ -65,7 +65,7 @@ function LoginForm() {
         onClick={handleGoogleLogin}
         disabled={loading}
         className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-border rounded-md hover:bg-muted text-sm font-semibold text-foreground hover:text-foreground transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-      >
+      > 
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
