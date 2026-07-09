@@ -1,26 +1,270 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   LIGHT THEME — optimized contrast for long reading sessions
+   WCAG AA: foreground on background ≥ 4.5:1
+   ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --background: #fafaf9;           /* Warm off-white — less harsh than pure white */
+  --foreground: #1c1917;           /* Warm dark — softer on eyes than pure black */
+
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+
+  /* Primary — brand violet #450CCA */
+  --primary: #450cca;              
+  --primary-foreground: #ffffff;
+
+  /* Surfaces */
+  --secondary: #f5f5f4;            /* Warm gray */
+  --secondary-foreground: #292524;
+
+  --muted: #f5f5f4;
+  --muted-foreground: #78716c;     /* Warm gray-500 — 4.5:1 contrast on #fafaf9 */
+
+  --accent: #f5f3ff;               /* Soft light violet tint */
+  --accent-foreground: #450cca;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  /* Borders */
+  --border: #e7e5e4;               /* Warm gray-200 */
+  --input: #e7e5e4;
+  --ring: #450cca;
+
+  --radius: 0.5rem;
+
+  /* Syntax highlight base (light) */
+  --code-bg: #1e1e2e;
+  --code-fg: #cdd6f4;
 }
 
-@theme inline {
+/* ─────────────────────────────────────────────────────────────────────────────
+   DARK THEME — Catppuccin Mocha-inspired: warm dark, not pure black
+   Great for extended coding/reading sessions
+   ───────────────────────────────────────────────────────────────────────────── */
+.dark {
+  --background: #0f0f13;           /* Very deep dark — premium feel */
+  --foreground: #e4e4eb;           /* Slightly warm white — less eye strain */
+
+  --card: #17171e;                 /* Slightly lighter surface */
+  --card-foreground: #e4e4eb;
+
+  --popover: #13131a;
+  --popover-foreground: #e4e4eb;
+
+  --primary: #a78bfa;              /* Soft violet — brand dark counterpart */
+  --primary-foreground: #0f0f13;
+
+  --secondary: #1f1f28;
+  --secondary-foreground: #e4e4eb;
+
+  --muted: #1c1c24;
+  --muted-foreground: #9d9daa;     /* Warm gray — good contrast on dark */
+
+  --accent: #2e1b4e;               /* Soft deep violet accent background */
+  --accent-foreground: #c084fc;
+
+  --destructive: #f87171;
+  --destructive-foreground: #0f0f13;
+
+  --border: #2a2a35;
+  --input: #2a2a35;
+  --ring: #a78bfa;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Tailwind CSS v4 @theme mapping
+   ───────────────────────────────────────────────────────────────────────────── */
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Font stack — Nunito for UI, JetBrains Mono for code */
+  --font-sans: var(--font-sans), "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans), "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ─────────────────────────────────────────────────────────────────────────────
+   Base element styles
+   ───────────────────────────────────────────────────────────────────────────── */
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), "Nunito", sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans), "Nunito", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono), "JetBrains Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Scrollbar — cross-browser
+   ───────────────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--muted-foreground); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Glass panel (nav/header)
+   ───────────────────────────────────────────────────────────────────────────── */
+.glass-panel {
+  background: rgba(250, 250, 249, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 15, 19, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Grid background pattern
+   ───────────────────────────────────────────────────────────────────────────── */
+.grid-bg {
+  background-size: 28px 28px;
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Glow effects
+   ───────────────────────────────────────────────────────────────────────────── */
+.glow-accent { box-shadow: 0 0 30px -5px var(--primary); opacity: 0.12; }
+
+.glow-hover:hover {
+  box-shadow: 0 0 22px -4px var(--primary);
+  border-color: var(--primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Material reader — typography optimized for long-form reading
+   Large, comfortable, fun (Nunito style)
+   ───────────────────────────────────────────────────────────────────────────── */
+.material-reader {
+  font-size: 17px;
+  line-height: 1.85;
+  color: var(--foreground);
+}
+
+.material-reader h1 {
+  font-size: 2rem;       /* 32px */
+  font-weight: 900;
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+
+.material-reader h2 {
+  font-size: 1.45rem;    /* ~23px */
+  font-weight: 800;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--foreground);
+}
+
+.material-reader h3 {
+  font-size: 1.15rem;    /* ~18px */
+  font-weight: 700;
+  margin-top: 1.75rem;
+  margin-bottom: 0.6rem;
+  color: var(--foreground);
+}
+
+.material-reader p, .material-reader div.md-p {
+  margin-bottom: 1.15rem;
+  color: color-mix(in srgb, var(--foreground) 82%, transparent);
+}
+
+/* VSCode-style code block — syntax highlighting applied externally via react-syntax-highlighter */
+.material-reader .code-block-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 1.75rem 0;
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+
+.code-block-wrapper pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-family: var(--font-mono), "JetBrains Mono", monospace !important;
+  font-size: 13.5px !important;
+  line-height: 1.8 !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+/* Light theme code block (override) */
+:root .code-block-wrapper { border-color: rgba(0,0,0,0.08); }
+:root .code-block-wrapper pre { box-shadow: none !important; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Split-screen preview: click-to-navigate hover effect
+   Elements with [data-offset] are clickable and jump the editor to that line.
+   ───────────────────────────────────────────────────────────────────────────── */
+.preview-click-container [data-offset] {
+  cursor: pointer;
+  transition: background-color 0.15s ease, outline-color 0.15s ease;
+  outline: 1.5px dashed transparent;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.preview-click-container [data-offset]:hover {
+  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+  outline-color: color-mix(in srgb, var(--primary) 30%, transparent);
 }

@@ -1,0 +1,580 @@
+"use client";
+
+import { useState } from "react";
+import { saveRoadmap, deleteRoadmap } from "@/app/actions/cms";
+import { Save, Plus, Trash2, Edit, Map, HelpCircle, LayoutGrid, CheckCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useModal } from "@/components/ModalProvider";
+
+interface NodeData {
+  id: string;
+  label: string;
+  type: "phase" | "topic" | "quiz" | "challenge";
+  parentId?: string;
+  x?: number;
+  y?: number;
+}
+
+interface RoadmapData {
+  _id?: string;
+  title: string;
+  slug: string;
+  description: string;
+  icon: string;
+  color: string;
+  isPublished: boolean;
+  nodes: NodeData[];
+}
+
+interface CmsRoadmapManagerProps {
+  initialRoadmaps: RoadmapData[];
+}
+
+export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
+  const router = useRouter();
+  const { showModal } = useModal();
+  const [roadmaps, setRoadmaps] = useState<RoadmapData[]>(initialRoadmaps);
+  const [selectedRoadmap, setSelectedRoadmap] = useState<RoadmapData | null>(null);
+
+  // Form Metadata state
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const [icon, setIcon] = useState("Compass");
+  const [color, setColor] = useState("#6366f1");
+  const [isPublished, setIsPublished] = useState(false);
+  const [nodes, setNodes] = useState<NodeData[]>([]);
+
+  // Node form state
+  const [nodeId, setNodeId] = useState("");
+  const [nodeLabel, setNodeLabel] = useState("");
+  const [nodeType, setNodeType] = useState<"phase" | "topic" | "quiz" | "challenge">("topic");
+  const [nodeParent, setNodeParent] = useState("");
+
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const startNewRoadmap = () => {
+    setSelectedRoadmap({
+      title: "",
+      slug: "",
+      description: "",
+      icon: "Compass",
+      color: "#6366f1",
+      isPublished: false,
+      nodes: [],
+    });
+    setTitle("");
+    setSlug("");
+    setDescription("");
+    setIcon("Compass");
+    setColor("#6366f1");
+    setIsPublished(false);
+    setNodes([]);
+  };
+
+  const selectRoadmapForEdit = (roadmap: RoadmapData) => {
+    setSelectedRoadmap(roadmap);
+    setTitle(roadmap.title);
+    setSlug(roadmap.slug);
+    setDescription(roadmap.description);
+    setIcon(roadmap.icon);
+    setColor(roadmap.color);
+    setIsPublished(roadmap.isPublished);
+    setNodes(roadmap.nodes || []);
+  };
+
+  const generateUniqueIdFromLabel = (label: string) => {
+    let baseSlug = label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+    if (!baseSlug) baseSlug = "node";
+
+    let uniqueSlug = baseSlug;
+    let counter = 1;
+    while (nodes.some((n) => n.id === uniqueSlug)) {
+      uniqueSlug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    return uniqueSlug;
+  };
+
+  const handleLabelChange = (val: string) => {
+    setNodeLabel(val);
+    const uniqueId = generateUniqueIdFromLabel(val);
+    setNodeId(uniqueId);
+  };
+
+  const handleAddNode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nodeId || !nodeLabel) {
+      showModal({
+        title: "Validasi Gagal",
+        message: "ID Node dan Label Tampilan wajib diisi.",
+        type: "warning",
+      });
+      return;
+    }
+
+    // Double check node id uniqueness
+    if (nodes.some((n) => n.id === nodeId)) {
+      showModal({
+        title: "ID Node Duplikat",
+        message: "ID Node harus unik dan tidak boleh sama dengan node lain di alur belajar ini.",
+        type: "error",
+      });
+      return;
+    }
+
+    // Automatic layout coordinate calculations based on parent node's y coordinate
+    let x = 400;
+    let y = 100;
+
+    if (nodeParent) {
+      const parentNode = nodes.find((n) => n.id === nodeParent);
+      if (parentNode) {
+        // Lay out in a vertical flow sequence
+        const siblingsCount = nodes.filter((n) => n.parentId === nodeParent).length;
+        x = (parentNode.x || 400) + (siblingsCount - 1) * 200; // Offset horizontally
+        y = (parentNode.y || 100) + 120; // Step down vertically
+      }
+    } else if (nodes.length > 0) {
+      // If root and multiple exist
+      const lastRoot = nodes.filter((n) => !n.parentId).pop();
+      if (lastRoot) {
+        x = lastRoot.x || 400;
+        y = (lastRoot.y || 100) + 200;
+      }
+    }
+
+    const newNode: NodeData = {
+      id: nodeId,
+      label: nodeLabel,
+      type: nodeType,
+      parentId: nodeParent || undefined,
+      x,
+      y,
+    };
+
+    setNodes((prev) => [...prev, newNode]);
+    
+    // Clear node form
+    setNodeId("");
+    setNodeLabel("");
+    setNodeType("topic");
+    setNodeParent("");
+  };
+
+  const handleDeleteNode = (id: string) => {
+    // Delete target and clean up any dangling child nodes parent references
+    setNodes((prev) => prev.filter((n) => n.id !== id).map(n => n.parentId === id ? { ...n, parentId: undefined } : n));
+  };
+
+  const handleSaveRoadmap = async () => {
+    if (!title || !slug || !description) {
+      showModal({
+        title: "Metadata Kosong",
+        message: "Silakan isi Judul, Slug, dan Deskripsi Peta Jalan terlebih dahulu.",
+        type: "warning",
+      });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const res = await saveRoadmap({
+        id: selectedRoadmap?._id,
+        title,
+        slug,
+        description,
+        icon,
+        color,
+        isPublished,
+        nodes,
+      });
+
+      if (res.success) {
+        showModal({
+          title: "Peta Jalan Disimpan",
+          message: "Alur belajar (roadmap) berhasil disimpan ke dalam database.",
+          type: "success",
+        });
+        setSelectedRoadmap(null);
+        router.refresh();
+      } else {
+        showModal({
+          title: "Gagal Menyimpan",
+          message: res.error || "Gagal menyimpan perubahan peta jalan.",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      showModal({
+        title: "Galat Penyimpanan",
+        message: "Terjadi kesalahan koneksi database saat menyimpan data.",
+        type: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteRoadmap = async (id: string) => {
+    showModal({
+      title: "Hapus Peta Jalan ini?",
+      message: "Apakah Anda yakin ingin menghapus roadmap ini? Tindakan ini bersifat permanen dan akan menghapus semua materi, kuis, serta riwayat progres belajar terkait.",
+      type: "warning",
+      confirmText: "Ya, Hapus Permanen",
+      cancelText: "Batal",
+      onConfirm: async () => {
+        try {
+          setDeletingId(id);
+          const res = await deleteRoadmap(id);
+          if (res.success) {
+            if (selectedRoadmap?._id === id) {
+              setSelectedRoadmap(null);
+            }
+            router.refresh();
+            showModal({
+              title: "Berhasil Dihapus",
+              message: "Roadmap telah dihapus dari sistem.",
+              type: "success",
+            });
+          } else {
+            showModal({
+              title: "Gagal Menghapus",
+              message: res.error || "Gagal menghapus peta jalan dari server.",
+              type: "error",
+            });
+          }
+        } catch (err) {
+          console.error(err);
+          showModal({
+            title: "Kesalahan internal",
+            message: "Gagal memproses penghapusan.",
+            type: "error",
+          });
+        } finally {
+          setDeletingId(null);
+        }
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-6 text-xs">
+      
+      {/* 1. ROADMAP LIST VIEW */}
+      {!selectedRoadmap && (
+        <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-border bg-secondary flex justify-between items-center">
+            <h3 className="font-bold uppercase tracking-wider text-foreground">
+              Daftar Kelola Roadmap
+            </h3>
+            <button
+              onClick={startNewRoadmap}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground hover:bg-primary/95 rounded font-semibold cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Buat Roadmap Baru</span>
+            </button>
+          </div>
+
+          <div className="divide-y divide-border">
+            {roadmaps.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">
+                Belum ada roadmap yang dibuat. Mulai dengan mengeklik &quot;Buat Roadmap Baru&quot;.
+              </div>
+            ) : (
+              roadmaps.map((r) => (
+                <div key={r._id} className="p-4 flex items-center justify-between hover:bg-muted/5 transition-colors">
+                  <div>
+                    <h4 className="font-bold text-foreground text-sm">{r.title}</h4>
+                    <p className="text-muted-foreground mt-0.5 max-w-xl truncate">
+                      {r.description}
+                    </p>
+                    <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
+                      <span>Slug: <strong>{r.slug}</strong></span>
+                      <span>•</span>
+                      <span>Nodes: <strong>{r.nodes?.length || 0} items</strong></span>
+                      <span>•</span>
+                      <span className={`px-2 py-0.2 rounded font-bold uppercase ${
+                        r.isPublished ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground border border-border"
+                      }`}>
+                        {r.isPublished ? "Published" : "Draft"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => selectRoadmapForEdit(r)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 border border-border rounded hover:bg-muted font-medium cursor-pointer"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                      <span>Edit Nodes</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRoadmap(r._id!)}
+                      disabled={deletingId === r._id}
+                      className="p-1.5 text-destructive bg-destructive/10 hover:bg-destructive hover:text-white rounded border border-destructive/20 cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 2. ROADMAP EDIT WORKSPACE */}
+      {selectedRoadmap && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Metadata configuration */}
+          <div className="lg:col-span-4 bg-card border border-border rounded-lg p-5 shadow-sm space-y-4">
+            <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5">
+              <Map className="h-4 w-4 text-primary" />
+              <span>Metadata Roadmap</span>
+            </h3>
+
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="block font-semibold text-muted-foreground uppercase mb-1">
+                  Judul Roadmap
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded text-xs text-foreground focus:outline-none focus:border-primary"
+                  placeholder="e.g. Frontend Developer"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-muted-foreground uppercase mb-1">
+                  Slug (URL)
+                </label>
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded text-xs text-foreground focus:outline-none focus:border-primary"
+                  placeholder="e.g. frontend-developer"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-muted-foreground uppercase mb-1">
+                  Deskripsi Singkat
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-background border border-border rounded text-xs text-foreground focus:outline-none focus:border-primary resize-y"
+                  placeholder="Deskripsi singkat roadmap..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-muted-foreground uppercase mb-1">
+                    Lucide Icon Name
+                  </label>
+                  <input
+                    type="text"
+                    value={icon}
+                    onChange={(e) => setIcon(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-border rounded text-xs text-foreground focus:outline-none"
+                    placeholder="Compass"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-muted-foreground uppercase mb-1">
+                    Accent Color
+                  </label>
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="w-full h-8 px-1.5 py-0.5 bg-background border border-border rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 py-2">
+                <input
+                  type="checkbox"
+                  id="published"
+                  checked={isPublished}
+                  onChange={(e) => setIsPublished(e.target.checked)}
+                  className="rounded border-border text-primary focus:ring-primary cursor-pointer h-4 w-4"
+                />
+                <label htmlFor="published" className="font-semibold text-foreground cursor-pointer">
+                  Publish untuk Publik
+                </label>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 border-t border-border pt-4 mt-6">
+              <button
+                onClick={handleSaveRoadmap}
+                disabled={saving}
+                className="w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/95 rounded font-semibold cursor-pointer"
+              >
+                <Save className="h-3.5 w-3.5" />
+                <span>Simpan Roadmap</span>
+              </button>
+              <button
+                onClick={() => setSelectedRoadmap(null)}
+                className="w-full px-4 py-2 border border-border hover:bg-muted rounded font-semibold cursor-pointer"
+              >
+                Kembali
+              </button>
+            </div>
+          </div>
+
+          {/* Node hierarchy editor list */}
+          <div className="lg:col-span-8 bg-card border border-border rounded-lg p-5 shadow-sm space-y-6">
+            <div>
+              <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                <LayoutGrid className="h-4 w-4 text-primary" />
+                <span>Kelola Node Roadmap ({nodes.length})</span>
+              </h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Tambah, hubungkan parent-child, dan kelola node modul di dalam alur belajar ini.
+              </p>
+            </div>
+
+            {/* Quick Add Node Form */}
+            <form onSubmit={handleAddNode} className="p-4 bg-secondary border border-border rounded grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <div className="sm:col-span-1">
+                <label className="block text-[9px] font-semibold text-muted-foreground uppercase mb-1">
+                  Node ID (Unique)
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={nodeId}
+                  className="w-full px-2.5 py-1.5 bg-muted border border-border rounded text-[11px] text-muted-foreground focus:outline-none cursor-not-allowed"
+                  placeholder="Dibuat otomatis..."
+                />
+              </div>
+
+              <div className="sm:col-span-1">
+                <label className="block text-[9px] font-semibold text-muted-foreground uppercase mb-1">
+                  Label Tampilan
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={nodeLabel}
+                  onChange={(e) => handleLabelChange(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-background border border-border rounded text-[11px] text-foreground focus:outline-none"
+                  placeholder="e.g. HTML Dasar"
+                />
+              </div>
+
+              <div className="sm:col-span-1">
+                <label className="block text-[9px] font-semibold text-muted-foreground uppercase mb-1">
+                  Jenis Node
+                </label>
+                <select
+                  value={nodeType}
+                  onChange={(e) => setNodeType(e.target.value as any)}
+                  className="w-full px-2 py-1.5 bg-background border border-border rounded text-[11px] text-foreground focus:outline-none cursor-pointer"
+                >
+                  <option value="phase">Phase (Fase)</option>
+                  <option value="topic">Topic (Materi)</option>
+                  <option value="quiz">Quiz (Ujian)</option>
+                  <option value="challenge">Challenge (Kode)</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-1">
+                <label className="block text-[9px] font-semibold text-muted-foreground uppercase mb-1">
+                  Parent Node (Optional)
+                </label>
+                <select
+                  value={nodeParent}
+                  onChange={(e) => setNodeParent(e.target.value)}
+                  className="w-full px-2 py-1.5 bg-background border border-border rounded text-[11px] text-foreground focus:outline-none cursor-pointer"
+                >
+                  <option value="">-- No Parent (Root) --</option>
+                  {nodes.map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.label} ({n.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="sm:col-span-4 flex justify-end">
+                <button
+                  type="submit"
+                  className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-semibold cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Tambahkan Node</span>
+                </button>
+              </div>
+            </form>
+
+            {/* List of current nodes */}
+            <div className="border border-border rounded overflow-hidden">
+              <div className="bg-muted/40 p-2.5 font-semibold text-muted-foreground border-b border-border">
+                Hirarki Node Saat Ini
+              </div>
+              <div className="divide-y divide-border max-h-[350px] overflow-y-auto bg-card">
+                {nodes.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground">
+                    Belum ada node modul di dalam roadmap ini.
+                  </div>
+                ) : (
+                  nodes.map((n) => (
+                    <div key={n.id} className="p-3 flex items-center justify-between hover:bg-muted/10 transition-colors">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <strong className="text-foreground">{n.label}</strong>
+                          <span className="text-[9px] text-muted-foreground">({n.id})</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          Type: <strong className="uppercase">{n.type}</strong>
+                          {n.parentId && (
+                            <>
+                              {" • Parent: "}
+                              <strong>{n.parentId}</strong>
+                            </>
+                          )}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteNode(n.id)}
+                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+export default CmsRoadmapManager;
