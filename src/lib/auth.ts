@@ -149,10 +149,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as "user" | "partner" | "admin" | "superadmin";
+      if (!session.user) {
+        session.user = {} as typeof session.user;
       }
+
+      session.user.id = token.id as string;
+      session.user.role =
+        token.role as "user" | "partner" | "admin" | "superadmin";
+
       return session;
     },
   },
