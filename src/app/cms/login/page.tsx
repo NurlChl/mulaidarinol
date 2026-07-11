@@ -3,7 +3,7 @@
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { Compass, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
 function CMSLoginForm() {
@@ -47,7 +47,11 @@ function CMSLoginForm() {
       });
 
       if (res?.error) {
-        setErrorMsg("Invalid email or password.");
+        setErrorMsg(
+          res.code === "database_unavailable"
+            ? "Database sedang tidak bisa dihubungi. Cek koneksi MongoDB/Atlas lalu coba lagi."
+            : "Invalid email or password."
+        );
         setLoading(false);
       } else {
         // Immediate redirect to bypass NextAuth session status propagation delay

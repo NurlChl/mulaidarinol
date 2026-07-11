@@ -5,6 +5,7 @@ import { submitChallengeCode } from "@/app/actions/progress";
 import { Play, CheckCircle2, XCircle, Code, Terminal, Eye, Loader2, Sparkles, Columns, Rows } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import Editor from "@monaco-editor/react";
+import type { Monaco } from "@monaco-editor/react";
 
 interface TestCase {
   inputDescription: string;
@@ -49,6 +50,80 @@ export function ConsoleEditor({ roadmapSlug, nodeId, challenge, onCompleted, isL
   const containerRef = useRef<HTMLDivElement>(null);
   const rightPaneRef = useRef<HTMLDivElement>(null);
 
+  const handleEditorWillMount = (monaco: Monaco) => {
+    const htmlSuggestions = [
+      {
+        label: "profile-card",
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertText: [
+          '<div class="profile-card">',
+          '  <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" alt="Foto profil" />',
+          "  <h1>${1:Nama Anda}</h1>",
+          "  <p>${2:Deskripsi singkat Anda}</p>",
+          '  <input type="text" placeholder="Kirim pesan..." />',
+          "  <button>${3:Kirim}</button>",
+          "</div>",
+        ].join("\n"),
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+        documentation: "Struktur kartu profil lengkap untuk latihan HTML.",
+      },
+      {
+        label: "button",
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertText: "<button>${1:Kirim}</button>",
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+      },
+      {
+        label: "input:text",
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertText: '<input type="text" placeholder="${1:Tulis sesuatu...}" />',
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+      },
+    ];
+
+    const cssSuggestions = [
+      {
+        label: "center-card",
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertText: [
+          ".card {",
+          "  max-width: ${1:360px};",
+          "  margin: 0 auto;",
+          "  padding: ${2:24px};",
+          "  border-radius: ${3:12px};",
+          "  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);",
+          "}",
+        ].join("\n"),
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+      },
+    ];
+
+    const jsSuggestions = [
+      {
+        label: "function",
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertText: ["function ${1:namaFungsi}(${2:parameter}) {", "  ${3:return parameter;}", "}"].join("\n"),
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+      },
+      {
+        label: "console.log",
+        kind: monaco.languages.CompletionItemKind.Function,
+        insertText: "console.log(${1:value});",
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+      },
+    ];
+
+    monaco.languages.registerCompletionItemProvider("html", {
+      provideCompletionItems: () => ({ suggestions: htmlSuggestions }),
+    });
+    monaco.languages.registerCompletionItemProvider("css", {
+      provideCompletionItems: () => ({ suggestions: cssSuggestions }),
+    });
+    monaco.languages.registerCompletionItemProvider("javascript", {
+      provideCompletionItems: () => ({ suggestions: jsSuggestions }),
+    });
+  };
+
   // Sync editor with initial code if challenge changes
   useEffect(() => {
     setCode(challenge.initialCode);
@@ -62,15 +137,15 @@ export function ConsoleEditor({ roadmapSlug, nodeId, challenge, onCompleted, isL
     
     // Hijack console logs
     const mockConsole = {
-      log: (...args: any[]) => {
+      log: (...args: unknown[]) => {
         logs.push(args.map(arg => 
           typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
         ).join(' '));
       },
-      error: (...args: any[]) => {
+      error: (...args: unknown[]) => {
         logs.push(`[ERROR] ${args.join(' ')}`);
       },
-      warn: (...args: any[]) => {
+      warn: (...args: unknown[]) => {
         logs.push(`[WARN] ${args.join(' ')}`);
       }
     };
@@ -81,8 +156,8 @@ export function ConsoleEditor({ roadmapSlug, nodeId, challenge, onCompleted, isL
       if (logs.length === 0) {
         logs.push("(Code executed successfully, but returned no logs. Use console.log() to print outputs.)");
       }
-    } catch (err: any) {
-      logs.push(`[ERROR RUNTIME] ${err.message}`);
+    } catch (err) {
+      logs.push(`[ERROR RUNTIME] ${err instanceof Error ? err.message : String(err)}`);
     }
 
     setConsoleLogs(logs);
@@ -228,14 +303,14 @@ export function ConsoleEditor({ roadmapSlug, nodeId, challenge, onCompleted, isL
   return (
     <div 
       ref={containerRef}
-      className={`w-full h-full flex bg-card border border-border rounded-lg overflow-hidden min-h-[600px] relative ${
-        layoutMode === "horizontal" ? "flex-col lg:flex-row" : "flex-col"
+      className={`w-full h-full min-h-0 flex bg-card border border-border rounded-lg overflow-hidden relative ${
+        layoutMode === "horizontal" ? "flex-col xl:flex-row" : "flex-col"
       }`}
     >
       {/* LEFT PANE: Instructions and Test Cases */}
       <div 
-        className="w-full flex flex-col justify-between bg-secondary overflow-y-auto"
-        style={layoutMode === "horizontal" ? { width: `${leftWidth}%` } : { height: `${leftWidth}%` }}
+        className="w-full min-h-0 flex flex-col justify-between bg-secondary overflow-y-auto"
+        style={{ flexBasis: `${leftWidth}%` }}
       >
         <div className="p-4 space-y-4 flex-1">
           <div>
@@ -296,7 +371,7 @@ export function ConsoleEditor({ roadmapSlug, nodeId, challenge, onCompleted, isL
         onMouseDown={handleMainDividerMouseDown}
         className={`bg-border hover:bg-primary/50 transition-all shrink-0 select-none z-10 ${
           layoutMode === "horizontal" 
-            ? "hidden lg:block w-1.5 hover:w-2 cursor-col-resize h-full" 
+            ? "hidden xl:block w-1.5 hover:w-2 cursor-col-resize h-full" 
             : "w-full h-1.5 hover:h-2 cursor-row-resize"
         }`}
         title="Geser untuk mengubah ukuran panel"
@@ -305,8 +380,8 @@ export function ConsoleEditor({ roadmapSlug, nodeId, challenge, onCompleted, isL
       {/* RIGHT PANE: Code Editor and Console / Output */}
       <div 
         ref={rightPaneRef}
-        className="flex-1 flex flex-col justify-between overflow-hidden"
-        style={layoutMode === "horizontal" ? { width: `${100 - leftWidth}%` } : { height: `${100 - leftWidth}%` }}
+        className="min-h-0 flex-1 flex flex-col justify-between overflow-hidden"
+        style={{ flexBasis: `${100 - leftWidth}%` }}
       >
         {/* Editor Area */}
         <div 
@@ -344,6 +419,7 @@ export function ConsoleEditor({ roadmapSlug, nodeId, challenge, onCompleted, isL
               theme="vs-dark"
               value={code}
               onChange={(value) => setCode(value || "")}
+              beforeMount={handleEditorWillMount}
               loading={
                 <div className="absolute inset-0 flex items-center justify-center bg-card">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -362,6 +438,10 @@ export function ConsoleEditor({ roadmapSlug, nodeId, challenge, onCompleted, isL
                 roundedSelection: true,
                 automaticLayout: true,
                 wordWrap: "on",
+                quickSuggestions: true,
+                suggestOnTriggerCharacters: true,
+                tabCompletion: "on",
+                snippetSuggestions: "top",
                 renderLineHighlight: "all",
                 tabSize: 2,
               }}

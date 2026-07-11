@@ -6,6 +6,22 @@ import { useEffect, useState, Suspense } from "react";
 import { Compass, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
+function getAuthErrorMessage(error: string | null) {
+  if (!error) {
+    return null;
+  }
+
+  if (error === "DatabaseUnavailable") {
+    return "Database sedang tidak bisa dihubungi. Coba lagi setelah koneksi MongoDB/Atlas pulih.";
+  }
+
+  if (error === "OAuthSignin" || error === "OAuthCallback") {
+    return "Failed to connect with Google. Please try again.";
+  }
+
+  return "An unexpected authentication error occurred.";
+}
+
 function LoginForm() {
   const { status } = useSession();
   const router = useRouter();
@@ -15,22 +31,14 @@ function LoginForm() {
 
   const error = searchParams.get("error");
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const authErrorMsg = getAuthErrorMessage(error);
+  const visibleErrorMsg = errorMsg || authErrorMsg;
 
   useEffect(() => {
     if (status === "authenticated") {
       router.replace(callbackUrl);
     }
   }, [status, router, callbackUrl]);
-
-  useEffect(() => {
-    if (error) {
-      if (error === "OAuthSignin" || error === "OAuthCallback") {
-        setErrorMsg("Failed to connect with Google. Please try again.");
-      } else {
-        setErrorMsg("An unexpected authentication error occurred.");
-      }
-    }
-  }, [error]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -54,10 +62,10 @@ function LoginForm() {
 
   return (
     <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-      {errorMsg && (
+      {visibleErrorMsg && (
         <div className="mb-4 flex items-center gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{errorMsg}</span>
+          <span>{visibleErrorMsg}</span>
         </div>
       )}
 

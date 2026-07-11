@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -14,18 +13,14 @@ import {
   CheckCircle2,
   Circle,
   ArrowLeft,
-  X,
   Edit2,
-  Columns,
-  Rows,
   Sparkles,
-  HelpCircle,
   ExternalLink,
-  BookOpen
+  BookOpen,
+  Trophy,
+  Code2
 } from "lucide-react";
 import CompletionButton from "./CompletionButton";
-import ConsoleQuiz from "./ConsoleQuiz";
-import ConsoleEditor from "./ConsoleEditor";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface Node {
@@ -60,16 +55,10 @@ export function ConsoleWorkspace({
   isLoggedIn,
   userRole
 }: ConsoleWorkspaceProps) {
-  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
   // Resize & Split Layout States
   const [sidebarWidth, setSidebarWidth] = useState(250); // in pixels
-  const [materialPercent, setMaterialPercent] = useState(50); // in percentage
-  const [workspaceLayout, setWorkspaceLayout] = useState<"columns" | "rows">("columns");
-
-  const rightContainerRef = useRef<HTMLDivElement>(null);
 
   // Filter topic nodes to handle navigation ordering
   const topics = roadmap.nodes.filter((n) => n.type === "topic");
@@ -96,38 +85,6 @@ export function ConsoleWorkspace({
       let newWidth = startWidth + deltaX;
       newWidth = Math.max(180, Math.min(450, newWidth));
       setSidebarWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-  };
-
-  const handleMaterialSplitDrag = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const containerRect = rightContainerRef.current?.getBoundingClientRect();
-    if (!containerRect) return;
-
-    const startPercent = materialPercent;
-    const startX = e.clientX;
-    const startY = e.clientY;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (workspaceLayout === "columns") {
-        const deltaX = moveEvent.clientX - startX;
-        let newPercent = startPercent + (deltaX / containerRect.width) * 100;
-        newPercent = Math.max(20, Math.min(80, newPercent));
-        setMaterialPercent(newPercent);
-      } else {
-        const deltaY = moveEvent.clientY - startY;
-        let newPercent = startPercent + (deltaY / containerRect.height) * 100;
-        newPercent = Math.max(20, Math.min(80, newPercent));
-        setMaterialPercent(newPercent);
-      }
     };
 
     const handleMouseUp = () => {
@@ -410,10 +367,10 @@ export function ConsoleWorkspace({
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
+    <div className="flex h-dvh w-full max-w-full flex-col overflow-hidden bg-background text-foreground">
       {/* Workspace Header — scaled to h-16 for vertical comfort */}
-      <header className="h-16 border-b border-border bg-card flex items-center justify-between px-5 shrink-0 z-10">
-        <div className="flex items-center gap-3">
+      <header className="min-h-16 border-b border-border bg-card flex flex-wrap items-center justify-between gap-3 px-3 py-2 sm:px-5 shrink-0 z-10">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
@@ -430,31 +387,20 @@ export function ConsoleWorkspace({
             <ArrowLeft className="h-4 w-4" />
           </Link>
  
-          <div className="hidden sm:flex flex-col justify-center pl-1 gap-0.5">
+          <div className="flex min-w-0 flex-col justify-center pl-1 gap-0.5">
             <div className="flex items-center gap-2">
               <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 tracking-wider">
                 {currentNode.type}
               </span>
-              <span className="text-[10px] font-bold text-muted-foreground truncate max-w-[150px] tracking-wide">{roadmap.title}</span>
+              <span className="hidden sm:block text-[10px] font-bold text-muted-foreground truncate max-w-[150px] tracking-wide">{roadmap.title}</span>
             </div>
-            <h1 className="text-[13px] font-extrabold text-foreground tracking-tight leading-none line-clamp-1">{currentNode.label}</h1>
+            <h1 className="text-[12px] sm:text-[13px] font-extrabold text-foreground tracking-tight leading-none line-clamp-1 max-w-[42vw] sm:max-w-[260px]">{currentNode.label}</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {/* Theme toggle — always visible in workspace */}
           <ThemeToggle />
-
-          {hasPractice && rightPanelOpen && (
-            <button
-              onClick={() => setWorkspaceLayout(workspaceLayout === "columns" ? "rows" : "columns")}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 border border-border bg-secondary hover:bg-muted rounded text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
-              title={workspaceLayout === "columns" ? "Ubah ke tata letak tumpuk vertikal" : "Ubah ke tata letak kolom horizontal"}
-            >
-              {workspaceLayout === "columns" ? <Rows className="h-3.5 w-3.5" /> : <Columns className="h-3.5 w-3.5" />}
-              <span className="hidden md:inline">{workspaceLayout === "columns" ? "Tampilan Baris" : "Tampilan Kolom"}</span>
-            </button>
-          )}
 
           {userRole && userRole !== "user" && (
             <Link
@@ -476,14 +422,19 @@ export function ConsoleWorkspace({
       </header>
 
       {/* Main Workspace Body */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex min-h-0 flex-1 overflow-hidden relative">
         
         {/* LEFT SIDEBAR: Topic Tree Navigation */}
+        {sidebarOpen && (
+        <>
+        <button
+          aria-label="Tutup daftar materi"
+          className="fixed inset-x-0 bottom-0 top-16 z-10 bg-black/25 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
         <aside
-          className={`border-r border-border bg-card flex flex-col shrink-0 transition-all duration-300 ${
-            sidebarOpen ? "ml-0" : "ml-[-450px]"
-          } h-full z-20`}
-          style={sidebarOpen ? { width: `${sidebarWidth}px` } : { width: 0 }}
+          className="fixed bottom-0 left-0 top-16 z-20 flex flex-col border-r border-border bg-card shadow-2xl md:relative md:inset-auto md:shadow-none shrink-0 h-[calc(100dvh-4rem)] md:h-full"
+          style={{ width: `${sidebarWidth}px` }}
         >
           {/* Sidebar title */}
           <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-2">
@@ -538,39 +489,26 @@ export function ConsoleWorkspace({
             })}
           </div>
         </aside>
+        </>
+        )}
 
         {/* DRAGGABLE SIDEBAR HANDLE */}
         {sidebarOpen && (
           <div
             onMouseDown={handleSidebarDrag}
-            className="w-1.5 hover:w-2 bg-border hover:bg-primary/50 cursor-col-resize h-full shrink-0 select-none z-10"
+            className="hidden md:block w-1.5 hover:w-2 bg-border hover:bg-primary/50 cursor-col-resize h-full shrink-0 select-none z-10"
             title="Seret untuk mengatur lebar sidebar"
           />
         )}
 
         {/* RIGHT AREA: Material Reader & Practice Split Panel */}
-        <div 
-          ref={rightContainerRef}
-          className={`flex-1 flex overflow-hidden ${
-            rightPanelOpen && safeChallenge 
-              ? workspaceLayout === "columns" 
-                ? "flex-row" 
-                : "flex-col"
-              : "flex-row"
-          }`}
-        >
+        <div className="min-w-0 flex-1 flex-row overflow-hidden">
           {/* MIDDLE CONTENT: Material Reader */}
           <div 
-            className="flex flex-col overflow-y-auto bg-background h-full w-full"
-            style={
-              rightPanelOpen && safeChallenge 
-                ? workspaceLayout === "columns"
-                  ? { width: `${materialPercent}%` } 
-                  : { height: `${materialPercent}%`, width: "100%" }
-                : { width: "100%" }
-            }
+            className="flex h-full min-w-0 w-full flex-col overflow-y-auto bg-background"
+            style={{ width: "100%" }}
           >
-            <div className="px-8 md:px-14 py-10 md:py-14 max-w-[800px] mx-auto w-full flex flex-col justify-between min-h-full pb-20">
+            <div className="px-5 sm:px-8 md:px-10 lg:px-12 py-8 md:py-12 max-w-[900px] xl:max-w-[980px] mx-auto w-full flex flex-col justify-between min-h-full pb-20">
               <div>
                 {/* Breadcrumbs */}
                 <nav className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-widest mb-8">
@@ -590,21 +528,38 @@ export function ConsoleWorkspace({
               {/* Bottom Actions Layout — optimized spacing with clear bottom margin */}
               <div className="border-t border-border pt-8 mt-12 mb-4">
                 {/* Optional practice callout inside reader */}
-                {hasPractice && !rightPanelOpen && (
-                  <div className="mb-10 p-5 rounded-2xl bg-primary/5 border border-primary/10 text-center">
-                    <h4 className="text-sm font-bold text-primary inline-flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4" />
-                      Asah Kemampuanmu!
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-1.5 max-w-sm mx-auto leading-relaxed">
-                      Materi ini dilengkapi dengan latihan interaktif. Klik tombol di bawah untuk langsung mencoba kuis atau menulis kode.
-                    </p>
-                    <button
-                      onClick={() => setRightPanelOpen(true)}
-                      className="mt-4 inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-bold rounded-xl cursor-pointer transition-colors"
-                    >
-                      <span>Mulai Latihan Praktik</span>
-                    </button>
+                {hasPractice && (
+                  <div className="mb-10 rounded-2xl bg-primary/5 border border-primary/10 p-4 sm:p-5">
+                    <div className="text-center">
+                      <h4 className="text-sm font-bold text-primary inline-flex items-center gap-1.5">
+                        <Sparkles className="h-4 w-4" />
+                        Asah Kemampuanmu!
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-1.5 max-w-sm mx-auto leading-relaxed">
+                        Materi ini punya latihan fokus di halaman terpisah supaya ruang ujian dan editor kode lebih lega.
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {safeQuiz && (
+                        <Link
+                          href={`/roadmaps/${roadmap.slug}/${currentNode.id}/quiz`}
+                          className="flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-card px-4 py-3 text-xs font-bold text-foreground hover:bg-primary/10 transition-colors"
+                        >
+                          <Trophy className="h-4 w-4 text-primary" />
+                          <span>Mulai Ujian Kuis</span>
+                        </Link>
+                      )}
+                      {safeChallenge && (
+                        <Link
+                          href={`/roadmaps/${roadmap.slug}/${currentNode.id}/challenge`}
+                          className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-colors"
+                        >
+                          <Code2 className="h-4 w-4" />
+                          <span>Buka Code Challenge</span>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -642,55 +597,6 @@ export function ConsoleWorkspace({
               </div>
             </div>
           </div>
-
-          {/* DRAGGABLE CONTENT SPLIT HANDLE (Only for code challenge) */}
-          {rightPanelOpen && safeChallenge && (
-            <div
-              onMouseDown={handleMaterialSplitDrag}
-              className={`bg-border hover:bg-primary/50 transition-all shrink-0 select-none z-10 ${
-                workspaceLayout === "columns"
-                  ? "w-1.5 hover:w-2 cursor-col-resize h-full"
-                  : "w-full h-1.5 hover:h-2 cursor-row-resize"
-              }`}
-              title="Seret untuk mengatur ukuran panel belajar"
-            />
-          )}
-
-          {/* SPLIT PRACTICE PANEL (Only for code challenge) */}
-          {rightPanelOpen && safeChallenge && (
-            <aside
-              className="bg-card flex flex-col overflow-hidden relative"
-              style={
-                workspaceLayout === "columns"
-                  ? { width: `${100 - materialPercent}%` }
-                  : { height: `${100 - materialPercent}%`, width: "100%" }
-              }
-            >
-              {/* Practice Panel Header */}
-              <div className="h-12 border-b border-border bg-secondary flex items-center justify-between px-4 shrink-0">
-                <span className="text-xs font-bold text-foreground">
-                  Latihan Praktik Interaktif
-                </span>
-                <button
-                  onClick={() => setRightPanelOpen(false)}
-                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                  title="Tutup Latihan"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Practice Content Area */}
-              <div className="flex-1 overflow-hidden flex flex-col">
-                <ConsoleEditor
-                  roadmapSlug={roadmap.slug}
-                  nodeId={currentNode.id}
-                  challenge={safeChallenge}
-                  isLoggedIn={isLoggedIn}
-                />
-              </div>
-            </aside>
-          )}
 
         </div>
 
