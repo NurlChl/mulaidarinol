@@ -1,0 +1,35 @@
+Copyright (C) 2026 NurlChl (MulaiDariNol Founder)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+ADDITIONAL TERMS & PERMISSIONS (Section 7 of GNU AGPL v3):
+
+1. Brand and Trademark Preservation:
+   The brand name "MulaiDariNol", its logo, and related trademarks are the 
+   exclusive property of NurlChl. Users and contributors are NOT permitted to 
+   remove, modify, or replace the "MulaiDariNol" branding, logos, or related 
+   design identifiers in any modified version of this software.
+
+2. Copyright and Attribution Preservation:
+   The copyright attribution to "NurlChl (MulaiDariNol Founder)" must be preserved 
+   and displayed prominently in all source code files, distributions, and user 
+   interfaces.
+
+3. Interactive User Agreement:
+   In accordance with Section 7(b) of the GNU AGPL v3, any modified version of 
+   this software that is run as a network service (SaaS) must include a visible, 
+   functioning hyperlink back to the original repository or project website 
+   (https://mulaidarinol.com) crediting "NurlChl" as the original author.
