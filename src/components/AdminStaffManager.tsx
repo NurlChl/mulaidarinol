@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { updateUserRole, createNewAdmin } from "@/app/actions/cms";
-import { UserPlus, Shield, User as UserIcon, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { UserPlus, Shield, Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useModal } from "@/components/ModalProvider";
 import { SearchableSelect } from "./SearchableSelect";
@@ -14,14 +14,14 @@ interface UserItem {
   role: "user" | "partner" | "admin" | "superadmin";
 }
 
-interface UserAdminManagerProps {
+interface AdminStaffManagerProps {
   users: UserItem[];
 }
 
-export function UserAdminManager({ users }: UserAdminManagerProps) {
+export function AdminStaffManager({ users }: AdminStaffManagerProps) {
   const router = useRouter();
   const { showModal } = useModal();
-  
+
   // Admin form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,8 +31,16 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Role modification state
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const filteredAdmins = users.filter((u) =>
+    (u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +75,8 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
 
   const handleRoleChange = async (userId: string, newRole: "user" | "partner" | "admin" | "superadmin") => {
     showModal({
-      title: "Ubah Hak Akses User?",
-      message: "Apakah Anda yakin ingin mengubah hak akses peran pengguna ini?",
+      title: "Ubah Hak Akses Admin?",
+      message: "Apakah Anda yakin ingin mengubah hak akses peran administrator ini?",
       type: "warning",
       confirmText: "Ya, Ubah Peran",
       cancelText: "Batal",
@@ -80,7 +88,7 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
             router.refresh();
             showModal({
               title: "Berhasil",
-              message: "Peran pengguna berhasil diperbarui.",
+              message: "Peran admin berhasil diperbarui.",
               type: "success",
             });
           } else {
@@ -111,7 +119,7 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
       <div className="lg:col-span-4 bg-card border border-border rounded-lg p-6 shadow-sm">
         <h3 className="text-sm font-bold text-foreground mb-1 flex items-center gap-1.5">
           <UserPlus className="h-4 w-4 text-primary" />
-          <span>Daftarkan Admin Baru</span>
+          <span>Daftarkan Staff Admin Baru</span>
         </h3>
         <p className="text-[10px] text-muted-foreground mb-6">
           Tambahkan akun administrator baru yang bisa masuk menggunakan portal kredensial CMS.
@@ -156,7 +164,7 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 bg-background border border-border rounded-md text-xs text-foreground focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground"
-              placeholder="e.g. jdoe@devroadmap.com"
+              placeholder="e.g. jdoe@mulaidarinol.com"
             />
           </div>
 
@@ -197,18 +205,29 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
             {formLoading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <span>Daftarkan Administrator</span>
+              <span>Daftarkan Staff</span>
             )}
           </button>
         </form>
       </div>
 
-      {/* RIGHT: Users Table */}
-      <div className="lg:col-span-8 bg-card border border-border rounded-lg shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-border bg-secondary">
-          <h3 className="font-bold uppercase tracking-wider text-foreground">
-            Semua Pengguna Platform
+      {/* RIGHT: Admins Table */}
+      <div className="lg:col-span-8 bg-card border border-border rounded-lg shadow-sm overflow-hidden space-y-4 p-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border pb-4">
+          <h3 className="font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+            <Shield className="h-4 w-4 text-primary" />
+            <span>Staff Admin Platform</span>
           </h3>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Cari nama atau email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded-md text-xs text-foreground focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground"
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -218,11 +237,11 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
                 <th className="p-4">Nama</th>
                 <th className="p-4">Email</th>
                 <th className="p-4">Peran (Role)</th>
-                <th className="p-4 text-right">Ubah Peran</th>
+                <th className="p-4 text-right">Ubah Peran / Demote</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {users.map((user) => (
+              {filteredAdmins.map((user) => (
                 <tr key={user._id} className="hover:bg-muted/10 transition-colors">
                   <td className="p-4 font-semibold text-foreground">{user.name}</td>
                   <td className="p-4 text-muted-foreground">{user.email}</td>
@@ -230,11 +249,7 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
                       user.role === "superadmin"
                         ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                        : user.role === "admin"
-                        ? "bg-blue-500/10 text-blue-500 border border-blue-500/20"
-                        : user.role === "partner"
-                        ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
-                        : "bg-muted text-muted-foreground border border-border"
+                        : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
                     }`}>
                       {user.role}
                     </span>
@@ -247,10 +262,10 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
                         value={user.role}
                         onChange={(val) => handleRoleChange(user._id, val as any)}
                         options={[
-                          { value: "user", label: "User" },
-                          { value: "partner", label: "Partner" },
                           { value: "admin", label: "Admin" },
                           { value: "superadmin", label: "Superadmin" },
+                          { value: "partner", label: "Demote to Partner" },
+                          { value: "user", label: "Demote to Learner" },
                         ]}
                         placeholder="Ubah Peran"
                         className="inline-block w-28 text-[10px]"
@@ -268,4 +283,4 @@ export function UserAdminManager({ users }: UserAdminManagerProps) {
   );
 }
 
-export default UserAdminManager;
+export default AdminStaffManager;

@@ -34,6 +34,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { ExternalLink } from "lucide-react";
 import { useModal } from "@/components/ModalProvider";
+import { SearchableSelect } from "./SearchableSelect";
 
 interface NodeData {
   id: string;
@@ -1445,40 +1446,34 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
             <label className="block font-semibold text-muted-foreground uppercase mb-1">
               Pilih Peta Jalan (Roadmap)
             </label>
-            <select
+            <SearchableSelect
               value={selectedRoadmapId}
-              onChange={(e) => {
-                setSelectedRoadmapId(e.target.value);
+              onChange={(val) => {
+                setSelectedRoadmapId(val);
                 setSelectedNodeId("");
               }}
-              className="w-full px-3 py-2 bg-background border border-border rounded text-xs text-foreground cursor-pointer"
-            >
-              <option value="">-- Pilih Roadmap --</option>
-              {roadmaps.map((r) => (
-                <option key={r._id} value={r._id}>
-                  {r.title}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "-- Pilih Roadmap --" },
+                ...roadmaps.map((r) => ({ value: r._id, label: r.title })),
+              ]}
+              placeholder="Pilih Roadmap"
+            />
           </div>
 
           <div>
             <label className="block font-semibold text-muted-foreground uppercase mb-1">
               Pilih Node Modul
             </label>
-            <select
+            <SearchableSelect
               disabled={!selectedRoadmapId}
               value={selectedNodeId}
-              onChange={(e) => setSelectedNodeId(e.target.value)}
-              className="w-full px-3 py-2 bg-background border border-border rounded text-xs text-foreground cursor-pointer disabled:opacity-50"
-            >
-              <option value="">-- Pilih Node --</option>
-              {learnableNodes.map((n) => (
-                <option key={n.id} value={n.id}>
-                  {n.label} ({n.id})
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedNodeId(val)}
+              options={[
+                { value: "", label: "-- Pilih Node --" },
+                ...learnableNodes.map((n) => ({ value: n.id, label: `${n.label} (${n.id})` })),
+              ]}
+              placeholder="Pilih Node"
+            />
           </div>
         </div>
 

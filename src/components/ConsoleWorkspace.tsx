@@ -547,11 +547,11 @@ export function ConsoleWorkspace({
                       </p>
                     </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className={`mt-4 ${safeQuiz && safeChallenge ? 'grid gap-3 sm:grid-cols-2' : 'flex justify-center'}`}>
                       {safeQuiz && (
                         <Link
                           href={`/roadmaps/${roadmap.slug}/${currentNode.id}/quiz`}
-                          className="flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-card px-4 py-3 text-xs font-bold text-foreground hover:bg-primary/10 transition-colors"
+                          className={`flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-card px-4 py-3 text-xs font-bold text-foreground hover:bg-primary/10 transition-colors ${!safeChallenge ? 'w-full sm:max-w-xs' : ''}`}
                         >
                           <Trophy className="h-4 w-4 text-primary" />
                           <span>Mulai Ujian Kuis</span>
@@ -560,7 +560,7 @@ export function ConsoleWorkspace({
                       {safeChallenge && (
                         <Link
                           href={`/roadmaps/${roadmap.slug}/${currentNode.id}/challenge`}
-                          className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-colors"
+                          className={`flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-colors ${!safeQuiz ? 'w-full sm:max-w-xs' : ''}`}
                         >
                           <Code2 className="h-4 w-4" />
                           <span>Buka Code Challenge</span>

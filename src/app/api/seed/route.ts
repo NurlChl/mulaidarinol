@@ -9,8 +9,28 @@ import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Block execution in production
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden in production environment." },
+        { status: 403 }
+      );
+    }
+
+    // Require authorization key
+    const { searchParams } = new URL(request.url);
+    const key = searchParams.get("key");
+    const expectedKey = process.env.SEED_API_KEY || "MulaidarinolSeed2026";
+
+    if (key !== expectedKey) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: Invalid seed key." },
+        { status: 401 }
+      );
+    }
+
     await dbConnect();
 
     // 1. Clear old collections

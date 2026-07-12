@@ -1,23 +1,19 @@
 # Maintenance & Architecture Guide
 
-Dokumen ini ditujukan sebagai panduan pemeliharaan sistem, struktur database, serta relasi antarentitas untuk memudahkan pengembangan lebih lanjut (baik oleh developer manusia maupun AI agen berikutnya).
+Dokumen ini ditujukan sebagai panduan pemeliharaan sistem, struktur database, serta relasi antarentitas untuk memudahkan pengembangan lebih lanjut. Didesain secara detail dan ringkas agar AI agen dapat mempelajari konteks repository ini secara efisien dengan konsumsi token seminimal mungkin.
 
 ---
 
 ## 1. Arsitektur & Teknologi Utama
-- **Framework:** Next.js (App Router, Versi Terbaru) + React 19
+- **Framework:** Next.js (App Router) + React 19
 - **Database:** MongoDB (dengan Mongoose ODM)
-- **Auth:** NextAuth.js v5 (Google OAuth untuk User biasa, Credentials Provider (Email/Password) untuk Superadmin, Admin, dan Partner)
-- **Styling:** Tailwind CSS v4 (menggunakan inline theme & CSS variables)
-- **Typography:** Google Fonts (**DM Sans** untuk Headings, **Plus Jakarta Sans** untuk Body). Konfigurasi terintegrasi di `src/app/layout.tsx` dan global CSS.
-- **Code Editor Engine:** Monaco Editor (melalui `@monaco-editor/react`) untuk rendering input kode monospaced premium dengan line-numbers, syntax highlighting, dan autocomplete kelas dunia (engine yang mentenagai VS Code).
+- **Auth:** NextAuth.js v5 (Google OAuth untuk User/Learner biasa, Credentials Provider (Email/Password) untuk Administrator Staff (Admin, Superadmin) dan Partner)
+- **Styling & Theme:** Tailwind CSS v4 (menggunakan inline theme & CSS variables). Mode Gelap menggunakan `.dark` class styling.
+- **Animations:** **Framer Motion** untuk micro-interactions (hover, transitions) & **GSAP** untuk complex entry timeline animations pada landing page.
+- **Typography:** Google Fonts (**Nunito** untuk Headings/UI, **JetBrains Mono** untuk Code).
+- **Code Editor Engine:** Monaco Editor (melalui `@monaco-editor/react`) untuk rendering input kode monospaced premium.
 - **Code Execution Sandbox:** Client-Side Sandbox menggunakan `iframe` reaktif (melalui properti `srcDoc`) untuk pratinjau HTML/CSS/JS dan Web Workers untuk JS coding challenges.
-- **Resizable Workspace Layout:** 
-  - Bilah sisi daftar materi (Sidebar) dapat digeser ukurannya (drag-to-resize width).
-  - Pembagi utama antara bacaan materi dan konsol kuis/latihan dapat diseret horizontal (pada mode kolom) atau diseret vertikal (pada mode baris).
-  - Terdapat opsi toggle tata letak (Tampilan Baris vs Tampilan Kolom) di header utama untuk kenyamanan belajar siswa.
-  - Custom React mouse listener (`onMouseDown`) digunakan untuk merespons sash drag secara responsif.
-- **YouTube Video Auto-Embed:** Interseptor tautan kustom pada component `a` di `ReactMarkdown` yang mendeteksi URL video YouTube dan mengubahnya menjadi pemutar video iframe responsif secara instan tanpa meninggalkan aplikasi.
+- **YouTube Video Auto-Embed:** Interseptor tautan kustom pada component `a` di `ReactMarkdown` yang mendeteksi URL video YouTube dan mengubahnya menjadi pemutar video iframe responsif secara instan.
 
 ---
 
@@ -30,6 +26,7 @@ erDiagram
     USER ||--o{ PARTNER-APPLICATION : submits
     USER ||--o{ ROADMAP : creates
     USER ||--o{ USER-PROGRESS : tracks
+    USER ||--o{ VERIFICATION-CODE : owns
     ROADMAP ||--o{ MATERIAL : contains
     ROADMAP ||--o{ QUIZ : contains
     ROADMAP ||--o{ CODE-CHALLENGE : contains
@@ -40,13 +37,14 @@ erDiagram
 ```
 
 ### Penjelasan Relasi:
-1. **`User`**: Menyimpan semua data pengguna. Atribut `role` bernilai `'user'`, `'partner'`, `'admin'`, atau `'superadmin'`.
-2. **`PartnerApplication`**: Menyimpan pengajuan pengguna biasa (`role: 'user'`) untuk menjadi `'partner'`. Berelasi *one-to-one* dengan `User` (berdasarkan `userId`). Disetujui atau ditolak oleh Admin/Superadmin.
-3. **`Roadmap`**: Menyimpan struktur roadmap. Setiap roadmap dibuat oleh `'partner'`, `'admin'`, atau `'superadmin'`. Di dalamnya terdapat array objek `nodes` yang mendefinisikan posisi koordinat, jenis node (fase, topik, kuis, tantangan), serta hierarkinya (`parentId`).
-4. **`Material`**: Konten pembelajaran berformat Markdown. Setiap material merujuk ke satu `Roadmap` (`roadmapId`) dan terikat ke satu node di dalam roadmap (`nodeId`). Dapat memiliki tautan opsional ke kuis (`quizId`) atau tantangan coding (`challengeId`).
-5. **`Quiz`**: Menyimpan soal-soal pilihan ganda beserta kunci jawaban dan limit waktu. Terikat ke satu `Roadmap` dan `nodeId`.
-6. **`CodeChallenge`**: Tantangan coding interaktif. Menyimpan deskripsi tantangan, kode awal (`initialCode`), bahasa pemrograman, serta test cases (assertion code) untuk memvalidasi input user secara langsung di browser.
-7. **`UserProgress`**: Menyimpan status belajar user. Berelasi dengan `User` (`userId`) dan `Roadmap` (`roadmapId`). Menyimpan array dari `completedNodes` (ID node yang telah diselesaikan), hasil kuis (`quizAttempts`), dan submisi coding (`challengeSubmissions`).
+1. **`User`** (`src/lib/models/User.ts`): Menyimpan semua data pengguna. Peran akun (`role`) adalah `'user'` (Learner), `'partner'`, `'admin'`, atau `'superadmin'`.
+2. **`VerificationCode`** (`src/lib/models/VerificationCode.ts`): Menyimpan data kode OTP untuk password reset atau pergantian email. Menggunakan MongoDB TTL index pada kolom `expiresAt` untuk penghapusan otomatis data setelah kedaluwarsa (10 menit).
+3. **`PartnerApplication`** (`src/lib/models/PartnerApplication.ts`): Menyimpan pengajuan pengguna biasa untuk menjadi `'partner'`. Berelasi *one-to-one* dengan `User` (berdasarkan `userId`). Disetujui atau ditolak oleh Admin/Superadmin.
+4. **`Roadmap`** (`src/lib/models/Roadmap.ts`): Menyimpan struktur roadmap. Setiap roadmap dibuat oleh `'partner'`, `'admin'`, atau `'superadmin'`. Di dalamnya terdapat array objek `nodes` yang mendefinisikan posisi koordinat, jenis node (`'phase'`, `'topic'`, `'quiz'`, `'challenge'`), serta hierarkinya (`parentId`).
+5. **`Material`** (`src/lib/models/Material.ts`): Konten pembelajaran berformat Markdown. Setiap material merujuk ke satu `Roadmap` (`roadmapId`) dan terikat ke satu node di dalam roadmap (`nodeId`). Dapat memiliki tautan opsional ke kuis (`quizId`) atau tantangan coding (`challengeId`).
+6. **`Quiz`** (`src/lib/models/Quiz.ts`): Menyimpan soal-soal pilihan ganda beserta kunci jawaban dan limit waktu. Terikat ke satu `Roadmap` dan `nodeId`.
+7. **`CodeChallenge`** (`src/lib/models/CodeChallenge.ts`): Tantangan coding interaktif. Menyimpan deskripsi tantangan, kode awal (`initialCode`), bahasa pemrograman, serta test cases (assertion code) untuk memvalidasi input user secara langsung di browser.
+8. **`UserProgress`** (`src/lib/models/UserProgress.ts`): Menyimpan status belajar user. Berelasi dengan `User` (`userId`) dan `Roadmap` (`roadmapId`). Menyimpan array dari `completedNodes` (ID node yang telah diselesaikan), hasil kuis (`quizAttempts`), dan submisi coding (`challengeSubmissions`).
 
 ---
 
@@ -57,46 +55,47 @@ d:\konten\mulaidarinol\
 ├── src/
 │   ├── app/                      # Next.js App Router Pages
 │   │   ├── api/                  # API Route Handlers (SSE, Progress, CMS, dll.)
+│   │   │   ├── seed/             # Seeding DB (Aman: Di-disable di Prod, Butuh Key di Dev)
 │   │   ├── cms/                  # Workspace CMS (Superadmin, Admin, Partner)
 │   │   │   ├── (dashboard)/      # Sub-direktori Route Group ber-sidebar & layout terproteksi
 │   │   │   │   ├── materials/    # Kelola Isi Materi (Markdown + Media)
 │   │   │   │   ├── partners/     # Kelola Review Pengajuan Partner
-│   │   │   │   ├── quizzes/      # Kelola Tes Ujian & Code Challenge
+│   │   │   │   ├── quizzes/      # Kelola Ujian Kuis & Code Challenge
 │   │   │   │   ├── roadmaps/     # Kelola Roadmap & Nodes
-│   │   │   │   ├── users/        # Kelola Role & Tambah Admin (Superadmin Only)
-│   │   │   │   ├── layout.tsx    # Layout Terproteksi CMS
+│   │   │   │   ├── settings/     # Pengaturan Profil, Ganti Email, & Ganti Password via OTP
+│   │   │   │   ├── users/        # User & Partner Management (Superadmin Only)
+│   │   │   │   │   ├── admins/   # Admin Staff Management (Superadmin Only)
+│   │   │   │   ├── layout.tsx    # Layout Terproteksi CMS (Role guard & sidebar links)
 │   │   │   │   └── page.tsx      # Analytics & Dashboard CMS
 │   │   │   └── login/            # Halaman login khusus Admin/Partner (Bypass sidebar layout)
 │   │   ├── login/                # Login User Umum (Google OAuth)
 │   │   ├── roadmaps/             # Halaman Roadmap (Canvas & Flow View)
 │   │   │   ├── [slug]/           # Canvas Roadmap Tree Viewer
-│   │   │   └── [slug]/[nodeId]/  # Learning Console (Controller server-side untuk Workspace)
+│   │   │   └── [slug]/[nodeId]/  # Learning Console (Workspace)
 │   │   ├── globals.css           # Styling Global & Tailwind v4 Variables
 │   │   ├── layout.tsx            # Root Layout, Theme Providers, Google Fonts Loader
-│   │   └── page.tsx              # Landing Page utama (Grid 8 Roadmap Aktif + Coming Soon)
+│   │   └── page.tsx              # Landing Page utama (GSAP + Framer Motion Client component Wrapper)
 │   ├── components/               # Reusable Components
-│   │   ├── ConsoleWorkspace.tsx  # Layout belajar reaktif ala Dicoding (Sidebar + Slide-out Sandbox)
+│   │   ├── LandingPageClient.tsx # Redesign premium Landing Page (GSAP & Framer Motion)
+│   │   ├── UserPartnerManager.tsx# Tabel Manajemen Pengguna Reguler & Partners
+│   │   ├── AdminStaffManager.tsx # Tabel & Registrasi Administrator Baru
+│   │   ├── ConsoleWorkspace.tsx  # Layout belajar reaktif (Centering single button layout)
 │   │   ├── ConsoleEditor.tsx     # Code Editor dengan Iframe Sandbox reaktif via srcDoc
 │   │   ├── ConsoleQuiz.tsx       # Engine timed-quiz interaktif
-│   │   ├── Navbar.tsx            # Navigation Bar Publik
-│   │   └── Footer.tsx            # Footer Publik
+│   │   ├── Navbar.tsx            # Navigation Bar Publik (Theme-reaktif Logo Light/Dark)
+│   │   └── Footer.tsx            # Footer Publik (Theme-reaktif Logo Light/Dark)
 │   ├── lib/                      # Helper library & Configuration
 │   │   ├── models/               # Mongoose Database Schemas
-│   │   ├── auth.ts               # Konfigurasi NextAuth.js
+│   │   ├── auth.ts               # Konfigurasi NextAuth.js (Provider & JWT hooks)
 │   │   ├── db.ts                 # Koneksi MongoDB (Singleton Pattern)
 │   │   └── utils.ts              # Helper functions (clsx, tailwind-merge)
-│   ├── hooks/                    # Custom React Hooks (theme, sse, dll.)
+│   ├── hooks/                    # Custom React Hooks
 │   └── middleware.ts             # Next.js Middleware untuk Proteksi CMS & API
-├── package.json
-├── tsconfig.json
-├── maintenance.md                # Dokumen ini
-└── roadmap-webdev.md             # File referensi roadmap web developer
 ```
 
 ---
 
-## 4. Konfigurasi Lingkungan (.env)
-Buat file `.env.local` di root direktori dengan variabel berikut:
+## 4. Konfigurasi Lingkungan (.env.local)
 ```env
 # MongoDB Connection
 MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/dbname
@@ -105,23 +104,30 @@ MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/dbname
 NEXTAUTH_URL=http://localhost:3000
 AUTH_SECRET=rahasia-super-aman-generasi-next-auth
 
-# Google OAuth (Untuk User Login)
+# Google OAuth (Untuk User/Learner Login)
 AUTH_GOOGLE_ID=google-client-id-anda
 AUTH_GOOGLE_SECRET=google-client-secret-anda
 
-# Cloudinary (Untuk Upload Media CMS)
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
+# SMTP Email Configuration (Nodemailer OTP Reset)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=email-keamanan@gmail.com
+SMTP_PASS=password-aplikasi-anda
+
+# Security Seeding Key
+SEED_API_KEY=MulaidarinolSeed2026
 ```
 
 ---
 
-## 5. Instruksi Pemeliharaan & Pengembangan
-1. **Database Migrasi / Seeding:** Gunakan script `/src/app/api/seed/route.ts` untuk mengisi ulang data default jika ada perubahan struktur database dasar.
-2. **Keamanan (Security):**
-   - Rute `/cms/*` dilindungi ketat melalui `middleware.ts` menggunakan token NextAuth. Role `'user'` dilarang keras mengakses `/cms/*`.
-   - Rute Superadmin (seperti pengelolaan admin baru) diverifikasi kembali di sisi server agar hanya role `'superadmin'` yang bisa melakukan mutasi database.
-3. **Optimasi Performa:**
-   - Gunakan static rendering (SSR/ISR) pada materi roadmap untuk performa SEO maksimal di Google.
-   - Pemuatan Monaco Code Editor harus menggunakan `next/dynamic` dengan opsi `ssr: false` agar tidak membengkak pada ukuran bundle JavaScript awal.
+## 5. Keamanan & Proteksi Sistem (Anti-Exploit)
+1. **Rute `/api/seed`:**
+   - Dilarang keras dipanggil pada environment production (`process.env.NODE_ENV === 'production'`) untuk menghindari reset database secara tidak sengaja atau disengaja.
+   - Pada environment non-production, rute ini membutuhkan parameter query `?key=KEY_VERIFIKASI` (default: `MulaidarinolSeed2026`) untuk mencegah penghapusan data secara tidak sengaja oleh bot crawler.
+2. **Rute `/cms/*` & API CMS:**
+   - Seluruh endpoint dilindungi di level server action menggunakan session validation (`getCmsSession`, `getAdminSession`, `getSuperadminSession`).
+   - Sisi UI dilindungi via middleware dan route layout matching. Peran reguler (`'user'`) tidak akan dapat mengakses file dashboard.
+3. **Password Reset OTP Verification:**
+   - Reset password mengharuskan superadmin/admin mengirim kode OTP 6-digit ke email terdaftar.
+   - Kode OTP disimpan terenkripsi dengan masa kedaluwarsa otomatis (10 menit) menggunakan indeks waktu MongoDB TTL.
+   - Mutasi data baru akan diaplikasikan di database hanya setelah pencocokan kode OTP berhasil.

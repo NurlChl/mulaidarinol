@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { saveRoadmap, deleteRoadmap } from "@/app/actions/cms";
-import { Save, Plus, Trash2, Edit, Map, HelpCircle, LayoutGrid, CheckCircle } from "lucide-react";
+import { Save, Plus, Trash2, Edit, Map, HelpCircle, LayoutGrid, CheckCircle, ChevronUp, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useModal } from "@/components/ModalProvider";
+import { SearchableSelect } from "./SearchableSelect";
 
 interface NodeData {
   id: string;
@@ -50,6 +51,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
   const [nodeLabel, setNodeLabel] = useState("");
   const [nodeType, setNodeType] = useState<"phase" | "topic" | "quiz" | "challenge">("topic");
   const [nodeParent, setNodeParent] = useState("");
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -71,6 +73,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
     setColor("#6366f1");
     setIsPublished(false);
     setNodes([]);
+    setEditingNodeId(null);
   };
 
   const selectRoadmapForEdit = (roadmap: RoadmapData) => {
@@ -82,6 +85,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
     setColor(roadmap.color);
     setIsPublished(roadmap.isPublished);
     setNodes(roadmap.nodes || []);
+    setEditingNodeId(null);
   };
 
   const generateUniqueIdFromLabel = (label: string) => {
@@ -103,8 +107,26 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
 
   const handleLabelChange = (val: string) => {
     setNodeLabel(val);
-    const uniqueId = generateUniqueIdFromLabel(val);
-    setNodeId(uniqueId);
+    if (!editingNodeId) {
+      const uniqueId = generateUniqueIdFromLabel(val);
+      setNodeId(uniqueId);
+    }
+  };
+
+  const startEditNode = (node: NodeData) => {
+    setEditingNodeId(node.id);
+    setNodeId(node.id);
+    setNodeLabel(node.label);
+    setNodeType(node.type);
+    setNodeParent(node.parentId || "");
+  };
+
+  const cancelEditNode = () => {
+    setEditingNodeId(null);
+    setNodeId("");
+    setNodeLabel("");
+    setNodeType("topic");
+    setNodeParent("");
   };
 
   const handleAddNode = (e: React.FormEvent) => {
@@ -115,6 +137,23 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
         message: "ID Node dan Label Tampilan wajib diisi.",
         type: "warning",
       });
+      return;
+    }
+
+    if (editingNodeId) {
+      // Edit Mode Update
+      setNodes((prev) =>
+        prev.map((n) =>
+          n.id === editingNodeId
+            ? { ...n, label: nodeLabel, type: nodeType, parentId: nodeParent || undefined }
+            : n
+        )
+      );
+      setEditingNodeId(null);
+      setNodeId("");
+      setNodeLabel("");
+      setNodeType("topic");
+      setNodeParent("");
       return;
     }
 
@@ -165,6 +204,19 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
     setNodeLabel("");
     setNodeType("topic");
     setNodeParent("");
+  };
+
+  const moveNode = (index: number, direction: "up" | "down") => {
+    const newNodes = [...nodes];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newNodes.length) return;
+    
+    // Swap
+    const temp = newNodes[index];
+    newNodes[index] = newNodes[targetIndex];
+    newNodes[targetIndex] = temp;
+    
+    setNodes(newNodes);
   };
 
   const handleDeleteNode = (id: string) => {
@@ -487,44 +539,59 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
                 <label className="block text-[9px] font-semibold text-muted-foreground uppercase mb-1">
                   Jenis Node
                 </label>
-                <select
+                <SearchableSelect
                   value={nodeType}
-                  onChange={(e) => setNodeType(e.target.value as any)}
-                  className="w-full px-2 py-1.5 bg-background border border-border rounded text-[11px] text-foreground focus:outline-none cursor-pointer"
-                >
-                  <option value="phase">Phase (Fase)</option>
-                  <option value="topic">Topic (Materi)</option>
-                  <option value="quiz">Quiz (Ujian)</option>
-                  <option value="challenge">Challenge (Kode)</option>
-                </select>
+                  onChange={(val) => setNodeType(val as any)}
+                  options={[
+                    { value: "phase", label: "Phase (Fase)" },
+                    { value: "topic", label: "Topic (Materi)" },
+                  ]}
+                  placeholder="Pilih Jenis Node"
+                />
               </div>
 
               <div className="sm:col-span-1">
                 <label className="block text-[9px] font-semibold text-muted-foreground uppercase mb-1">
                   Parent Node (Optional)
                 </label>
-                <select
+                <SearchableSelect
                   value={nodeParent}
-                  onChange={(e) => setNodeParent(e.target.value)}
-                  className="w-full px-2 py-1.5 bg-background border border-border rounded text-[11px] text-foreground focus:outline-none cursor-pointer"
-                >
-                  <option value="">-- No Parent (Root) --</option>
-                  {nodes.map((n) => (
-                    <option key={n.id} value={n.id}>
-                      {n.label} ({n.id})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setNodeParent(val)}
+                  options={[
+                    { value: "", label: "-- No Parent (Root) --" },
+                    ...nodes.map((n) => ({ value: n.id, label: `${n.label} (${n.id})` })),
+                  ]}
+                  placeholder="Pilih Parent Node"
+                />
               </div>
 
-              <div className="sm:col-span-4 flex justify-end">
-                <button
-                  type="submit"
-                  className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-semibold cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Tambahkan Node</span>
-                </button>
+              <div className="sm:col-span-4 flex justify-end gap-2">
+                {editingNodeId ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={cancelEditNode}
+                      className="px-4 py-1.5 bg-secondary hover:bg-muted text-foreground border border-border rounded font-semibold cursor-pointer text-xs"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold cursor-pointer text-xs"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      <span>Perbarui Node</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="submit"
+                    className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-semibold cursor-pointer text-xs"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Tambahkan Node</span>
+                  </button>
+                )}
               </div>
             </form>
 
@@ -539,32 +606,77 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
                     Belum ada node modul di dalam roadmap ini.
                   </div>
                 ) : (
-                  nodes.map((n) => (
-                    <div key={n.id} className="p-3 flex items-center justify-between hover:bg-muted/10 transition-colors">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <strong className="text-foreground">{n.label}</strong>
-                          <span className="text-[9px] text-muted-foreground">({n.id})</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Type: <strong className="uppercase">{n.type}</strong>
-                          {n.parentId && (
-                            <>
-                              {" • Parent: "}
-                              <strong>{n.parentId}</strong>
-                            </>
-                          )}
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => handleDeleteNode(n.id)}
-                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded cursor-pointer"
+                  nodes.map((n, idx) => {
+                    const isPhase = n.type === "phase";
+                    return (
+                      <div
+                        key={n.id}
+                        className={`p-3 flex items-center justify-between hover:bg-muted/10 transition-colors border-l-4 ${
+                          isPhase
+                            ? "border-l-primary bg-secondary/30"
+                            : "border-l-emerald-500"
+                        }`}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-foreground">{n.label}</strong>
+                            <span className="text-[9px] text-muted-foreground">({n.id})</span>
+                            <span className={`text-[8px] font-black uppercase px-1 rounded ${
+                              isPhase ? "bg-primary/10 text-primary border border-primary/20" : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                            }`}>
+                              {n.type}
+                            </span>
+                          </div>
+                          {n.parentId && (
+                            <p className="text-[10px] text-muted-foreground">
+                              Parent: <strong className="text-foreground">{n.parentId}</strong>
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => startEditNode(n)}
+                            className={`p-1 rounded cursor-pointer transition-colors ${
+                              editingNodeId === n.id
+                                ? "text-indigo-600 bg-indigo-500/10 font-bold animate-pulse"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            }`}
+                            title="Edit node"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => moveNode(idx, "up")}
+                            className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Pindahkan ke atas"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === nodes.length - 1}
+                            onClick={() => moveNode(idx, "down")}
+                            className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Pindahkan ke bawah"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteNode(n.id)}
+                            className="p-1.5 text-destructive hover:bg-destructive/10 rounded cursor-pointer transition-colors"
+                            title="Hapus node"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>

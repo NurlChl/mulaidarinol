@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
-import UserPartnerManager from "@/components/UserPartnerManager";
+import AdminStaffManager from "@/components/AdminStaffManager";
 import { ShieldAlert } from "lucide-react";
 
-export default async function CMSUsersPage() {
+export default async function CMSAdminsPage() {
   const session = await auth();
 
   // Guard: Superadmin check
@@ -17,7 +17,7 @@ export default async function CMSUsersPage() {
         </div>
         <h3 className="font-bold text-foreground">Akses Terbatas (Superadmin Only)</h3>
         <p className="text-muted-foreground mt-1 max-w-xs">
-          Hanya peran Superadmin utama yang dapat mengelola hak akses user dan mendaftarkan administrator baru.
+          Hanya peran Superadmin utama yang dapat mengelola hak akses administrator dan mendaftarkan staff admin baru.
         </p>
       </div>
     );
@@ -25,8 +25,8 @@ export default async function CMSUsersPage() {
 
   await dbConnect();
 
-  // Fetch only users and partners
-  const userDocs = await User.find({ role: { $in: ["user", "partner"] } }).sort({ createdAt: -1 }).lean();
+  // Fetch only admins and superadmins
+  const userDocs = await User.find({ role: { $in: ["admin", "superadmin"] } }).sort({ createdAt: -1 }).lean();
 
   const serializedUsers = userDocs.map((u: any) => ({
     _id: u._id.toString(),
@@ -38,13 +38,13 @@ export default async function CMSUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">User & Partner Management</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Admin Staff Management</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Atur peran akun pengguna platform dan berikan hak kontribusi (partner).
+          Kelola administrator internal platform dan daftarkan staff baru.
         </p>
       </div>
 
-      <UserPartnerManager users={serializedUsers} />
+      <AdminStaffManager users={serializedUsers} />
     </div>
   );
 }

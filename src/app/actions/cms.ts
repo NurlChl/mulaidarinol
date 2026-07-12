@@ -13,6 +13,8 @@ import UserProgress from "@/lib/models/UserProgress";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import notificationEmitter from "@/lib/emitter";
+import VerificationCode from "@/lib/models/VerificationCode";
+import nodemailer from "nodemailer";
 
 
 // Helper guard for general CMS roles (partner, admin, superadmin)
@@ -265,12 +267,6 @@ export async function saveQuiz(quizData: {
         questions,
       });
 
-      // Update node type inside Roadmap to quiz
-      await Roadmap.updateOne(
-        { _id: roadmapId, "nodes.id": nodeId },
-        { $set: { "nodes.$.type": "quiz" } }
-      );
-
       // Link to Material if it exists
       await Material.updateOne(
         { roadmapId, nodeId },
@@ -319,12 +315,6 @@ export async function saveCodeChallenge(challengeData: {
         initialCode,
         testCases,
       });
-
-      // Update node type inside Roadmap to challenge
-      await Roadmap.updateOne(
-        { _id: roadmapId, "nodes.id": nodeId },
-        { $set: { "nodes.$.type": "challenge" } }
-      );
 
       // Link to Material if it exists
       await Material.updateOne(
@@ -495,5 +485,148 @@ export async function deleteCodeChallenge(roadmapId: string, nodeId: string) {
   } catch (error: any) {
     console.error("Delete challenge error:", error);
     return { success: false, error: error.message || "Failed to delete challenge." };
+  }
+}
+
+// ----------------------------------------------------
+// 7. PROFILE SETTINGS & OTP VERIFICATION ACTIONS
+// ----------------------------------------------------
+
+async function sendOtpEmail(email: string, code: string, purposeText: string) {
+  // If SMTP configs are set, send true email. Otherwise, fall back to console print in dev
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+
+  if (SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: parseInt(SMTP_PORT),
+        secure: parseInt(SMTP_PORT) === 465,
+        auth: {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        },
+      });
+
+      await transporter.sendMail({
+        from: `"MulaiDariNol Security" <${SMTP_USER}>`,
+        to: email,
+        subject: `Kode Verifikasi Keamanan Anda - ${code}`,
+        text: `Kode verifikasi Anda untuk ${purposeText} adalah: ${code}. Kode ini berlaku selama 10 menit.`,
+        html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 8px; max-width: 480px; margin: auto;">
+          <h2 style="color: #450cca; text-align: center;">MulaiDariNol</h2>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p>Halo,</p>
+          <p>Anda sedang mengajukan <strong>${purposeText}</strong> di platform MulaiDariNol.</p>
+          <p>Gunakan kode OTP berikut untuk melanjutkan proses:</p>
+          <div style="font-size: 24px; font-weight: bold; letter-spacing: 4px; text-align: center; margin: 20px 0; padding: 12px; background: #f5f3ff; color: #450cca; border-radius: 6px;">
+            ${code}
+          </div>
+          <p style="font-size: 11px; color: #888; text-align: center;">Kode OTP ini berlaku selama 10 menit. Jangan bagikan kode ini kepada siapapun.</p>
+        </div>`,
+      });
+      return true;
+    } catch (err) {
+      console.error("Nodemailer error sending email:", err);
+    }
+  }
+
+  // Fallback dev print
+  console.log(`\n==========================================\n[DEV MODE OTP] Email: ${email}\nPurpose: ${purposeText}\nCode: ${code}\n==========================================\n`);
+  return false;
+}
+
+export async function requestPasswordChangeOtp() {
+  const session = await auth();
+  if (!session || !session.user) {
+    throw new Error("Unauthorized: Please log in.");
+  }
+
+  await dbConnect();
+
+  try {
+    const email = session.user.email as string;
+
+    // Generate random 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Expire in 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Save/update OTP
+    await VerificationCode.findOneAndUpdate(
+      { email, purpose: "password_reset" },
+      { code, expiresAt },
+      { upsert: true, new: true }
+    );
+
+    await sendOtpEmail(email, code, "Ganti Kata Sandi (Password Reset)");
+
+    return { success: true, message: "OTP sent successfully." };
+  } catch (error: any) {
+    console.error("Request OTP error:", error);
+    return { success: false, error: error.message || "Gagal mengirim kode OTP." };
+  }
+}
+
+export async function verifyAndChangePassword(otp: string, passwordBaru: string) {
+  const session = await auth();
+  if (!session || !session.user) {
+    throw new Error("Unauthorized: Please log in.");
+  }
+
+  await dbConnect();
+
+  try {
+    const email = session.user.email as string;
+
+    // Retrieve active OTP
+    const verification = await VerificationCode.findOne({
+      email,
+      purpose: "password_reset",
+    });
+
+    if (!verification) {
+      return { success: false, error: "Kode verifikasi tidak ditemukan atau sudah kedaluwarsa." };
+    }
+
+    if (verification.code !== otp) {
+      return { success: false, error: "Kode verifikasi salah." };
+    }
+
+    // Delete verification code
+    await VerificationCode.findByIdAndDelete(verification._id);
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(passwordBaru, 10);
+    await User.findByIdAndUpdate(session.user.id, { password: hashedPassword });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Verify and change password error:", error);
+    return { success: false, error: error.message || "Gagal mengubah kata sandi." };
+  }
+}
+
+export async function updateAdminEmail(newEmail: string) {
+  const session = await auth();
+  if (!session || !session.user) {
+    throw new Error("Unauthorized: Please log in.");
+  }
+
+  await dbConnect();
+
+  try {
+    // Basic verification: Check if email is already taken
+    const existing = await User.findOne({ email: newEmail });
+    if (existing) {
+      return { success: false, error: "Email sudah digunakan oleh pengguna lain." };
+    }
+
+    await User.findByIdAndUpdate(session.user.id, { email: newEmail });
+    return { success: true };
+  } catch (error: any) {
+    console.error("Update admin email error:", error);
+    return { success: false, error: error.message || "Gagal memperbarui email." };
   }
 }

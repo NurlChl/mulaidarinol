@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Compass, CheckCircle2, Lock, ArrowLeft, Trophy, Zap, Code, ShieldCheck } from "lucide-react";
+import { Compass, CheckCircle2, Lock, ArrowLeft, Trophy, Zap, Code, ShieldCheck, Layers } from "lucide-react";
 
 interface NodeData {
   id: string;
@@ -284,8 +284,9 @@ export function RoadmapCanvas({ roadmap, completedNodes, isLoggedIn }: RoadmapCa
                   >
                     {node.type === "phase" ? (
                       /* Phase Card Layout — premium colored solid gradients */
-                      <div className="w-full h-full flex items-center justify-center rounded-xl bg-linear-to-r from-primary to-indigo-600 text-white font-extrabold text-[12px] tracking-wider uppercase shadow-lg border border-primary/25 px-4 text-center">
-                        {node.label}
+                      <div className="w-full h-full flex flex-col items-center justify-center rounded-2xl bg-slate-900 border-2 border-indigo-500/50 shadow-md shadow-indigo-500/10 text-white font-extrabold text-[10px] tracking-wider uppercase px-4 py-2.5 text-center select-none relative overflow-hidden group">
+                        <Layers className="h-4.5 w-4.5 text-indigo-400 mb-1" />
+                        <span className="relative z-10 leading-tight">{node.label}</span>
                       </div>
                     ) : (
                       /* Learnable Node Layout — premium card design with colored accent bars */

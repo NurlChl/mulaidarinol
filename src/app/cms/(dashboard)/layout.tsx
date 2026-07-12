@@ -14,7 +14,9 @@ import {
   UserCheck,
   Globe,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Shield,
+  Settings
 } from "lucide-react";
 
 interface CMSLayoutProps {
@@ -104,19 +106,39 @@ export default async function CMSLayout({ children }: CMSLayoutProps) {
 
             {/* Superadmin Only Links */}
             {role === "superadmin" && (
-              <Link
-                href="/cms/users"
-                className="flex items-center gap-3 px-3 py-2 rounded text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-              >
-                <Users className="h-4 w-4 shrink-0" />
-                <span>User Management</span>
-              </Link>
+              <>
+                <Link
+                  href="/cms/users"
+                  className="flex items-center gap-3 px-3 py-2 rounded text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                >
+                  <Users className="h-4 w-4 shrink-0" />
+                  <span>Learner & Partner List</span>
+                </Link>
+                <Link
+                  href="/cms/users/admins"
+                  className="flex items-center gap-3 px-3 py-2 rounded text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                >
+                  <Shield className="h-4 w-4 shrink-0" />
+                  <span>Admin Staff List</span>
+                </Link>
+              </>
             )}
           </nav>
         </div>
 
         {/* Bottom Actions */}
         <div className="p-4 border-t border-border space-y-2">
+          <Link
+            href="/cms/settings"
+            className="flex items-center justify-between px-3 py-2 rounded border border-border text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <Settings className="h-3.5 w-3.5" />
+              <span>Account Settings</span>
+            </div>
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+
           <Link
             href="/"
             className="flex items-center justify-between px-3 py-2 rounded border border-border text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
