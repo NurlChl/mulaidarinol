@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { saveQuiz, saveCodeChallenge } from "@/app/actions/cms";
-import { Trophy, Save, Plus, Trash2, HelpCircle, Code, ListPlus } from "lucide-react";
+import { saveQuiz, saveCodeChallenge, deleteQuiz, deleteCodeChallenge } from "@/app/actions/cms";
+import { Trophy, Save, Plus, Trash2, HelpCircle, Code, ListPlus, Trash } from "lucide-react";
 import { useModal } from "@/components/ModalProvider";
 
 interface NodeData {
@@ -169,6 +169,100 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
 
   const handleDeleteTestCase = (idx: number) => {
     setTestCases((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleDeleteOptionField = (idx: number) => {
+    if (qOptions.length <= 2) return;
+    setQOptions((prev) => prev.filter((_, i) => i !== idx));
+    if (qCorrect >= qOptions.length - 1) {
+      setQCorrect(Math.max(0, qOptions.length - 2));
+    }
+  };
+
+  const handleDeleteQuiz = async () => {
+    const isConfirmed = confirm("Apakah Anda yakin ingin menghapus kuis ujian untuk topik ini? Data akan dihapus permanen.");
+    if (!isConfirmed) return;
+
+    try {
+      setSaving(true);
+      const res = await deleteQuiz(selectedRoadmapId, selectedNodeId);
+      if (res.success) {
+        showModal({
+          title: "Kuis Berhasil Dihapus",
+          message: "Data kuis ujian telah dihapus dari database. Tipe node diatur kembali menjadi topik biasa.",
+          type: "success",
+        });
+        
+        // Reset local states
+        const nodeObj = learnableNodes.find((n) => n.id === selectedNodeId);
+        setQuizTitle(`Ujian Evaluasi: ${nodeObj ? nodeObj.label : ""}`);
+        setQuizTimeLimit(300);
+        setQuestions([]);
+
+        // Clear cache
+        const cacheKey = `${selectedRoadmapId}-${selectedNodeId}`;
+        delete quizzesCache[cacheKey];
+      } else {
+        showModal({
+          title: "Gagal Menghapus",
+          message: res.error || "Gagal menghapus kuis.",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      showModal({
+        title: "Kesalahan internal",
+        message: "Gagal menghapus kuis.",
+        type: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteChallenge = async () => {
+    const isConfirmed = confirm("Apakah Anda yakin ingin menghapus tantangan coding untuk topik ini? Data akan dihapus permanen.");
+    if (!isConfirmed) return;
+
+    try {
+      setSaving(true);
+      const res = await deleteCodeChallenge(selectedRoadmapId, selectedNodeId);
+      if (res.success) {
+        showModal({
+          title: "Tantangan Dihapus",
+          message: "Tantangan coding telah dihapus. Tipe node dikembalikan menjadi topik biasa.",
+          type: "success",
+        });
+
+        // Reset local states
+        const nodeObj = learnableNodes.find((n) => n.id === selectedNodeId);
+        setChallengeTitle(`Praktik Mandiri: ${nodeObj ? nodeObj.label : ""}`);
+        setChallengeDesc(`Tulis solusi coding untuk topik ${nodeObj ? nodeObj.label : ""} di sini.`);
+        setChallengeLang("javascript");
+        setChallengeInitialCode("");
+        setTestCases([]);
+
+        // Clear cache
+        const cacheKey = `${selectedRoadmapId}-${selectedNodeId}`;
+        delete challengesCache[cacheKey];
+      } else {
+        showModal({
+          title: "Gagal Menghapus",
+          message: res.error || "Gagal menghapus tantangan.",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      showModal({
+        title: "Kesalahan internal",
+        message: "Gagal menghapus tantangan.",
+        type: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Save submissions
@@ -429,12 +523,22 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                             className="flex-1 px-3 py-1.5 bg-background border border-border rounded text-[11px] text-foreground focus:outline-none"
                             placeholder={`Choice ${idx + 1}...`}
                           />
+                          {qOptions.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOptionField(idx)}
+                              className="p-1.5 text-destructive hover:bg-destructive/10 rounded cursor-pointer transition-colors"
+                              title="Hapus opsi"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       ))}
                       <button
                         type="button"
                         onClick={handleAddOptionField}
-                        className="text-[10px] font-bold text-primary hover:underline"
+                        className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
                       >
                         + Tambah Opsi Pilihan
                       </button>
@@ -514,11 +618,23 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-4 border-t border-border">
+                  <div className="flex justify-between items-center pt-4 border-t border-border">
+                    {quizzesCache[`${selectedRoadmapId}-${selectedNodeId}`] ? (
+                      <button
+                        onClick={handleDeleteQuiz}
+                        disabled={saving}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded font-semibold cursor-pointer disabled:opacity-50 transition-all text-xs"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Hapus Kuis Ujian</span>
+                      </button>
+                    ) : (
+                      <div />
+                    )}
                     <button
                       onClick={handleSaveQuiz}
                       disabled={saving}
-                      className="flex items-center gap-1.5 px-5 py-2 bg-primary text-primary-foreground hover:bg-primary/95 rounded font-semibold cursor-pointer disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-5 py-2 bg-primary text-primary-foreground hover:bg-primary/95 rounded font-semibold cursor-pointer disabled:opacity-50 text-xs"
                     >
                       <Save className="h-3.5 w-3.5" />
                       <span>Simpan Kuis Ujian</span>
@@ -678,11 +794,23 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-4 border-t border-border">
+                  <div className="flex justify-between items-center pt-4 border-t border-border">
+                    {challengesCache[`${selectedRoadmapId}-${selectedNodeId}`] ? (
+                      <button
+                        onClick={handleDeleteChallenge}
+                        disabled={saving}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded font-semibold cursor-pointer disabled:opacity-50 transition-all text-xs"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Hapus Tantangan Coding</span>
+                      </button>
+                    ) : (
+                      <div />
+                    )}
                     <button
                       onClick={handleSaveChallenge}
                       disabled={saving}
-                      className="flex items-center gap-1.5 px-5 py-2 bg-primary text-primary-foreground hover:bg-primary/95 rounded font-semibold cursor-pointer disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-5 py-2 bg-primary text-primary-foreground hover:bg-primary/95 rounded font-semibold cursor-pointer disabled:opacity-50 text-xs"
                     >
                       <Save className="h-3.5 w-3.5" />
                       <span>Simpan Challenge Editor</span>

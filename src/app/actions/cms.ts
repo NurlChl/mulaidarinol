@@ -443,3 +443,57 @@ export async function createNewAdmin(adminData: {
     return { success: false, error: error.message || "Failed to register administrator." };
   }
 }
+
+export async function deleteQuiz(roadmapId: string, nodeId: string) {
+  await getCmsSession();
+  await dbConnect();
+
+  try {
+    // 1. Delete Quiz
+    await Quiz.deleteOne({ roadmapId, nodeId });
+
+    // 2. Revert node type inside Roadmap to "topic"
+    await Roadmap.updateOne(
+      { _id: roadmapId, "nodes.id": nodeId },
+      { $set: { "nodes.$.type": "topic" } }
+    );
+
+    // 3. Remove quizId link in Material if it exists
+    await Material.updateOne(
+      { roadmapId, nodeId },
+      { $unset: { quizId: "" } }
+    );
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete quiz error:", error);
+    return { success: false, error: error.message || "Failed to delete quiz." };
+  }
+}
+
+export async function deleteCodeChallenge(roadmapId: string, nodeId: string) {
+  await getCmsSession();
+  await dbConnect();
+
+  try {
+    // 1. Delete Challenge
+    await CodeChallenge.deleteOne({ roadmapId, nodeId });
+
+    // 2. Revert node type inside Roadmap to "topic"
+    await Roadmap.updateOne(
+      { _id: roadmapId, "nodes.id": nodeId },
+      { $set: { "nodes.$.type": "topic" } }
+    );
+
+    // 3. Remove challengeId link in Material if it exists
+    await Material.updateOne(
+      { roadmapId, nodeId },
+      { $unset: { challengeId: "" } }
+    );
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete challenge error:", error);
+    return { success: false, error: error.message || "Failed to delete challenge." };
+  }
+}
