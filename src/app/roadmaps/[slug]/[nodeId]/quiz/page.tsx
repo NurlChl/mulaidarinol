@@ -88,7 +88,7 @@ export default async function QuizFocusPage({ params }: PageProps) {
     }
   }
 
-  const topics = (roadmap.nodes as RoadmapNodeLike[]).filter((n) => n.type === "topic");
+  const topics = (roadmap.nodes as RoadmapNodeLike[]).filter((n) => n.type !== "phase");
   const currentIdx = topics.findIndex((topic) => topic.id === nodeId);
   const nextNode = currentIdx >= 0 && currentIdx < topics.length - 1
     ? {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -55,13 +55,20 @@ export function ConsoleWorkspace({
   isLoggedIn,
   userRole
 }: ConsoleWorkspaceProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    // Open sidebar by default on desktop screens (>= 768px)
+    if (window.innerWidth >= 768) {
+      setSidebarOpen(true);
+    }
+  }, []);
 
   // Resize & Split Layout States
   const [sidebarWidth, setSidebarWidth] = useState(250); // in pixels
 
-  // Filter topic nodes to handle navigation ordering
-  const topics = roadmap.nodes.filter((n) => n.type === "topic");
+  // Filter topic nodes to handle navigation ordering (include materials, quizzes, and challenges)
+  const topics = roadmap.nodes.filter((n) => n.type !== "phase");
   const currentIdx = topics.findIndex((t) => t.id === currentNode.id);
   const prevNode = currentIdx > 0 ? topics[currentIdx - 1] : null;
   const nextNode = currentIdx < topics.length - 1 ? topics[currentIdx + 1] : null;
