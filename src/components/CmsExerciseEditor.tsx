@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { saveQuiz, saveCodeChallenge, deleteQuiz, deleteCodeChallenge } from "@/app/actions/cms";
-import { Trophy, Save, Plus, Trash2, HelpCircle, Code, ListPlus, Trash } from "lucide-react";
+import { Trophy, Save, Plus, Trash2, HelpCircle, Code, ListPlus, Edit, X } from "lucide-react";
 import { useModal } from "@/components/ModalProvider";
 import { SearchableSelect } from "./SearchableSelect";
 
@@ -44,6 +44,7 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
   const [qOptions, setQOptions] = useState<string[]>(["", ""]);
   const [qCorrect, setQCorrect] = useState(0);
   const [qExplanation, setQExplanation] = useState("");
+  const [editingQuestionIdx, setEditingQuestionIdx] = useState<number | null>(null);
 
   // ----------------------------------------------------
   // CHALLENGE STATE
@@ -58,6 +59,7 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
   const [tcDesc, setTcDesc] = useState("");
   const [tcAssert, setTcAssert] = useState("");
   const [tcExpected, setTcExpected] = useState("");
+  const [editingTcIdx, setEditingTcIdx] = useState<number | null>(null);
 
   const selectedRoadmap = roadmaps.find((r) => r._id === selectedRoadmapId);
   const learnableNodes = selectedRoadmap
@@ -121,21 +123,49 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
       return;
     }
 
-    const newQuestion = {
-      id: `q-${Date.now()}`,
-      questionText: qText,
-      options: [...qOptions],
-      correctOptionIndex: qCorrect,
-      explanation: qExplanation,
-    };
+    if (editingQuestionIdx !== null) {
+      // Update existing question
+      setQuestions((prev) =>
+        prev.map((q, i) =>
+          i === editingQuestionIdx
+            ? { ...q, questionText: qText, options: [...qOptions], correctOptionIndex: qCorrect, explanation: qExplanation }
+            : q
+        )
+      );
+      setEditingQuestionIdx(null);
+    } else {
+      const newQuestion = {
+        id: `q-${Date.now()}`,
+        questionText: qText,
+        options: [...qOptions],
+        correctOptionIndex: qCorrect,
+        explanation: qExplanation,
+      };
+      setQuestions((prev) => [...prev, newQuestion]);
+    }
 
-    setQuestions((prev) => [...prev, newQuestion]);
-    
     // Clear question inputs
     setQText("");
     setQOptions(["", ""]);
     setQCorrect(0);
     setQExplanation("");
+  };
+
+  const startEditQuestion = (idx: number) => {
+    const q = questions[idx];
+    setQText(q.questionText);
+    setQOptions([...q.options]);
+    setQCorrect(q.correctOptionIndex);
+    setQExplanation(q.explanation || "");
+    setEditingQuestionIdx(idx);
+  };
+
+  const cancelEditQuestion = () => {
+    setQText("");
+    setQOptions(["", ""]);
+    setQCorrect(0);
+    setQExplanation("");
+    setEditingQuestionIdx(null);
   };
 
   const handleDeleteQuestion = (idx: number) => {
@@ -154,13 +184,23 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
       return;
     }
 
-    const newTestCase = {
-      inputDescription: tcDesc,
-      assertionCode: tcAssert,
-      expectedOutput: tcExpected,
-    };
-
-    setTestCases((prev) => [...prev, newTestCase]);
+    if (editingTcIdx !== null) {
+      setTestCases((prev) =>
+        prev.map((tc, i) =>
+          i === editingTcIdx
+            ? { ...tc, inputDescription: tcDesc, assertionCode: tcAssert, expectedOutput: tcExpected }
+            : tc
+        )
+      );
+      setEditingTcIdx(null);
+    } else {
+      const newTestCase = {
+        inputDescription: tcDesc,
+        assertionCode: tcAssert,
+        expectedOutput: tcExpected,
+      };
+      setTestCases((prev) => [...prev, newTestCase]);
+    }
 
     // Clear inputs
     setTcDesc("");
@@ -170,6 +210,21 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
 
   const handleDeleteTestCase = (idx: number) => {
     setTestCases((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const startEditTestCase = (idx: number) => {
+    const tc = testCases[idx];
+    setTcDesc(tc.inputDescription);
+    setTcAssert(tc.assertionCode);
+    setTcExpected(tc.expectedOutput);
+    setEditingTcIdx(idx);
+  };
+
+  const cancelEditTestCase = () => {
+    setTcDesc("");
+    setTcAssert("");
+    setTcExpected("");
+    setEditingTcIdx(null);
   };
 
   const handleDeleteOptionField = (idx: number) => {
@@ -485,9 +540,22 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                     </div>
                   </div>
 
-                  {/* Add Question form */}
+                  {/* Add/Edit Question form */}
                   <form onSubmit={handleAddQuestion} className="p-4 bg-secondary border border-border rounded space-y-3">
-                    <h4 className="font-semibold text-foreground">Tambah Butir Soal</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-foreground">
+                        {editingQuestionIdx !== null ? `✏️ Edit Soal #${editingQuestionIdx + 1}` : "Tambah Butir Soal"}
+                      </h4>
+                      {editingQuestionIdx !== null && (
+                        <button
+                          type="button"
+                          onClick={cancelEditQuestion}
+                          className="flex items-center gap-1 text-[10px] px-2 py-1 border border-border rounded hover:bg-muted cursor-pointer text-muted-foreground"
+                        >
+                          <X className="h-3 w-3" /> Batal Edit
+                        </button>
+                      )}
+                    </div>
                     
                     <div>
                       <label className="block text-[9px] font-semibold text-muted-foreground uppercase mb-1">
@@ -571,9 +639,13 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                     <div className="flex justify-end pt-2">
                       <button
                         type="submit"
-                        className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-semibold cursor-pointer"
+                        className={`px-4 py-1.5 text-white rounded font-semibold cursor-pointer ${
+                          editingQuestionIdx !== null
+                            ? "bg-indigo-600 hover:bg-indigo-700"
+                            : "bg-emerald-600 hover:bg-emerald-700"
+                        }`}
                       >
-                        Simpan Pertanyaan
+                        {editingQuestionIdx !== null ? "Perbarui Soal" : "Simpan Pertanyaan"}
                       </button>
                     </div>
                   </form>
@@ -590,7 +662,12 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                         </div>
                       ) : (
                         questions.map((q, idx) => (
-                          <div key={q.id || idx} className="p-3 flex items-center justify-between hover:bg-muted/10">
+                          <div
+                            key={q.id || idx}
+                            className={`p-3 flex items-center justify-between hover:bg-muted/10 ${
+                              editingQuestionIdx === idx ? "ring-1 ring-inset ring-indigo-500 bg-indigo-500/5" : ""
+                            }`}
+                          >
                             <div>
                               <p className="font-semibold text-foreground">
                                 {idx + 1}. {q.questionText}
@@ -598,13 +675,26 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                               <p className="text-[10px] text-emerald-600 font-medium mt-1">
                                 Kunci: {String.fromCharCode(65 + q.correctOptionIndex)}) {q.options[q.correctOptionIndex]}
                               </p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {q.options.length} opsi pilihan
+                              </p>
                             </div>
-                            <button
-                              onClick={() => handleDeleteQuestion(idx)}
-                              className="p-1.5 text-destructive hover:bg-destructive/10 rounded cursor-pointer"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => startEditQuestion(idx)}
+                                className="p-1.5 text-indigo-500 hover:bg-indigo-500/10 rounded cursor-pointer"
+                                title="Edit soal"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteQuestion(idx)}
+                                className="p-1.5 text-destructive hover:bg-destructive/10 rounded cursor-pointer"
+                                title="Hapus soal"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         ))
                       )}
@@ -696,9 +786,22 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                     />
                   </div>
 
-                  {/* Add Test Case Form */}
+                  {/* Add/Edit Test Case Form */}
                   <form onSubmit={handleAddTestCase} className="p-4 bg-secondary border border-border rounded space-y-3">
-                    <h4 className="font-semibold text-foreground">Tambah Test Case Pemeriksa</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-foreground">
+                        {editingTcIdx !== null ? `✏️ Edit Test Case #${editingTcIdx + 1}` : "Tambah Test Case Pemeriksa"}
+                      </h4>
+                      {editingTcIdx !== null && (
+                        <button
+                          type="button"
+                          onClick={cancelEditTestCase}
+                          className="flex items-center gap-1 text-[10px] px-2 py-1 border border-border rounded hover:bg-muted cursor-pointer text-muted-foreground"
+                        >
+                          <X className="h-3 w-3" /> Batal Edit
+                        </button>
+                      )}
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
@@ -745,9 +848,13 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                     <div className="flex justify-end pt-2">
                       <button
                         type="submit"
-                        className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-semibold cursor-pointer"
+                        className={`px-4 py-1.5 text-white rounded font-semibold cursor-pointer ${
+                          editingTcIdx !== null
+                            ? "bg-indigo-600 hover:bg-indigo-700"
+                            : "bg-emerald-600 hover:bg-emerald-700"
+                        }`}
                       >
-                        Tambahkan Test Case
+                        {editingTcIdx !== null ? "Perbarui Test Case" : "Tambahkan Test Case"}
                       </button>
                     </div>
                   </form>
@@ -764,10 +871,15 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                         </div>
                       ) : (
                         testCases.map((tc, idx) => (
-                          <div key={idx} className="p-3 flex items-center justify-between hover:bg-muted/10 font-mono text-[10px]">
+                          <div
+                            key={idx}
+                            className={`p-3 flex items-center justify-between hover:bg-muted/10 font-mono text-[10px] ${
+                              editingTcIdx === idx ? "ring-1 ring-inset ring-indigo-500 bg-indigo-500/5" : ""
+                            }`}
+                          >
                             <div>
                               <p className="font-semibold text-foreground text-xs font-sans">
-                                Cek: {tc.inputDescription}
+                                #{idx + 1} — {tc.inputDescription}
                               </p>
                               <p className="text-primary mt-1">
                                 Assert: {tc.assertionCode}
@@ -776,12 +888,22 @@ export function CmsExerciseEditor({ roadmaps, quizzesCache, challengesCache }: C
                                 Output: {tc.expectedOutput}
                               </p>
                             </div>
-                            <button
-                              onClick={() => handleDeleteTestCase(idx)}
-                              className="p-1.5 text-destructive hover:bg-destructive/10 rounded cursor-pointer"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => startEditTestCase(idx)}
+                                className="p-1.5 text-indigo-500 hover:bg-indigo-500/10 rounded cursor-pointer shrink-0"
+                                title="Edit test case"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTestCase(idx)}
+                                className="p-1.5 text-destructive hover:bg-destructive/10 rounded cursor-pointer shrink-0"
+                                title="Hapus test case"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         ))
                       )}

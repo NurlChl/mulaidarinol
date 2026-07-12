@@ -1,6 +1,7 @@
 "use my-server-action";
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import UserProgress from "@/lib/models/UserProgress";
@@ -52,6 +53,11 @@ export async function toggleNodeCompletion(roadmapSlug: string, nodeId: string) 
     }
 
     await progress.save();
+
+    // Revalidate roadmap page so progress bar updates
+    revalidatePath(`/roadmaps/${roadmapSlug}`);
+    revalidatePath(`/roadmaps/${roadmapSlug}/${nodeId}`);
+
     return { success: true, completed };
   } catch (error) {
     console.error("Error toggling node completion:", error);
@@ -109,6 +115,10 @@ export async function submitQuizAttempt(
 
     await progress.save();
 
+    // Revalidate roadmap page so progress updates
+    revalidatePath(`/roadmaps/${roadmapSlug}`);
+    revalidatePath(`/roadmaps/${roadmapSlug}/${nodeId}`);
+
     return {
       success: true,
       score,
@@ -159,6 +169,10 @@ export async function submitChallengeCode(
     }
 
     await progress.save();
+
+    // Revalidate roadmap page so progress updates
+    revalidatePath(`/roadmaps/${roadmapSlug}`);
+    revalidatePath(`/roadmaps/${roadmapSlug}/${nodeId}`);
 
     return { success: true, passed };
   } catch (error) {

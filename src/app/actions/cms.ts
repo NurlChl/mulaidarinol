@@ -1,6 +1,7 @@
 "use my-server-action";
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
@@ -152,7 +153,13 @@ export async function saveRoadmap(roadmapData: {
       isPublished,
     });
 
-    return { success: true, roadmapId: roadmap._id.toString() };
+    // Revalidate all roadmap-related pages
+    revalidatePath("/cms/roadmaps");
+    revalidatePath("/roadmaps");
+    revalidatePath(`/roadmaps/${slug}`);
+    revalidatePath("/");
+
+    return { success: true, roadmapId: roadmap._id.toString(), slug };
   } catch (error: any) {
     console.error("Save roadmap error:", error);
     return { success: false, error: error.message || "Failed to save roadmap." };
@@ -173,6 +180,7 @@ export async function deleteRoadmap(roadmapId: string) {
       return { success: false, error: "Access denied. You can only delete your own roadmaps." };
     }
 
+    const deletedSlug = roadmap.slug;
     await Roadmap.findByIdAndDelete(roadmapId);
     
     // Cascading delete associated materials, quizzes, code challenges
@@ -180,6 +188,12 @@ export async function deleteRoadmap(roadmapId: string) {
     await Quiz.deleteMany({ roadmapId });
     await CodeChallenge.deleteMany({ roadmapId });
     await UserProgress.deleteMany({ roadmapId });
+
+    // Revalidate pages
+    revalidatePath("/cms/roadmaps");
+    revalidatePath("/roadmaps");
+    revalidatePath(`/roadmaps/${deletedSlug}`);
+    revalidatePath("/");
 
     return { success: true };
   } catch (error: any) {
@@ -228,6 +242,14 @@ export async function saveMaterial(materialData: {
       );
     }
 
+    // Revalidate material page so content is fresh
+    const roadmapDoc = await Roadmap.findById(roadmapId).lean() as any;
+    if (roadmapDoc?.slug) {
+      revalidatePath(`/roadmaps/${roadmapDoc.slug}/${nodeId}`);
+      revalidatePath(`/roadmaps/${roadmapDoc.slug}`);
+    }
+    revalidatePath("/cms/materials");
+
     return { success: true, materialId: material._id.toString() };
   } catch (error: any) {
     console.error("Save material error:", error);
@@ -273,6 +295,13 @@ export async function saveQuiz(quizData: {
         { $set: { quizId: quiz._id } }
       );
     }
+
+    // Revalidate quiz page
+    const roadmapDoc2 = await Roadmap.findById(roadmapId).lean() as any;
+    if (roadmapDoc2?.slug) {
+      revalidatePath(`/roadmaps/${roadmapDoc2.slug}/${nodeId}`);
+    }
+    revalidatePath("/cms/quizzes");
 
     return { success: true, quizId: quiz._id.toString() };
   } catch (error: any) {
@@ -323,6 +352,13 @@ export async function saveCodeChallenge(challengeData: {
       );
     }
 
+    // Revalidate challenge page
+    const roadmapDoc3 = await Roadmap.findById(roadmapId).lean() as any;
+    if (roadmapDoc3?.slug) {
+      revalidatePath(`/roadmaps/${roadmapDoc3.slug}/${nodeId}`);
+    }
+    revalidatePath("/cms/quizzes");
+
     return { success: true, challengeId: challenge._id.toString() };
   } catch (error: any) {
     console.error("Save challenge error:", error);
@@ -366,6 +402,11 @@ export async function reviewPartnerApplication(applicationId: string, action: "a
       userId: application.userId.toString(),
     });
 
+    // Revalidate partner/user pages
+    revalidatePath("/cms/partners");
+    revalidatePath("/cms/users");
+    revalidatePath("/cms");
+
     return { success: true };
   } catch (error: any) {
     console.error("Review application error:", error);
@@ -388,6 +429,11 @@ export async function updateUserRole(userId: string, newRole: "user" | "partner"
 
     user.role = newRole;
     await user.save();
+
+    // Revalidate admin/user management pages
+    revalidatePath("/cms/users");
+    revalidatePath("/cms");
+
     return { success: true };
   } catch (error: any) {
     console.error("Update role error:", error);
@@ -427,6 +473,10 @@ export async function createNewAdmin(adminData: {
       password: hashedPassword,
     });
 
+    // Revalidate admin management pages
+    revalidatePath("/cms/users");
+    revalidatePath("/cms");
+
     return { success: true, adminId: newAdmin._id.toString() };
   } catch (error: any) {
     console.error("Create admin error:", error);
@@ -454,6 +504,13 @@ export async function deleteQuiz(roadmapId: string, nodeId: string) {
       { $unset: { quizId: "" } }
     );
 
+    // Revalidate
+    const roadmapDocQ = await Roadmap.findById(roadmapId).lean() as any;
+    if (roadmapDocQ?.slug) {
+      revalidatePath(`/roadmaps/${roadmapDocQ.slug}/${nodeId}`);
+    }
+    revalidatePath("/cms/quizzes");
+
     return { success: true };
   } catch (error: any) {
     console.error("Delete quiz error:", error);
@@ -480,6 +537,13 @@ export async function deleteCodeChallenge(roadmapId: string, nodeId: string) {
       { roadmapId, nodeId },
       { $unset: { challengeId: "" } }
     );
+
+    // Revalidate
+    const roadmapDocC = await Roadmap.findById(roadmapId).lean() as any;
+    if (roadmapDocC?.slug) {
+      revalidatePath(`/roadmaps/${roadmapDocC.slug}/${nodeId}`);
+    }
+    revalidatePath("/cms/quizzes");
 
     return { success: true };
   } catch (error: any) {
