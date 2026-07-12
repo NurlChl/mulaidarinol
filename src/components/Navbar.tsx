@@ -19,12 +19,12 @@ export function Navbar() {
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2">
               <img
-                src="/MulaiDariNol.svg"
+                src="/MulaiDariNol.svg?v=2"
                 alt="MulaiDariNol Logo"
                 className="h-8 w-auto dark:hidden transition-all"
               />
               <img
-                src="/MulaiDariNolLight.svg"
+                src="/MulaiDariNolLight.svg?v=2"
                 alt="MulaiDariNol Logo"
                 className="h-8 w-auto hidden dark:block transition-all"
               />

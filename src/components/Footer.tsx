@@ -8,12 +8,12 @@ export function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img
-              src="/MulaiDariNol.svg"
+              src="/MulaiDariNol.svg?v=2"
               alt="MulaiDariNol Logo"
               className="h-7 w-auto dark:hidden"
             />
             <img
-              src="/MulaiDariNolLight.svg"
+              src="/MulaiDariNolLight.svg?v=2"
               alt="MulaiDariNol Logo"
               className="h-7 w-auto hidden dark:block"
             />

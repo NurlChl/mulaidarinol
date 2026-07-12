@@ -151,12 +151,12 @@ export default function CMSLoginPage() {
         <div className="flex flex-col items-center text-center">
           <Link href="/" className="flex items-center mb-6">
             <img
-              src="/MulaiDariNol.svg"
+              src="/MulaiDariNol.svg?v=2"
               alt="MulaiDariNol Logo"
               className="h-10 w-auto dark:hidden transition-all"
             />
             <img
-              src="/MulaiDariNolLight.svg"
+              src="/MulaiDariNolLight.svg?v=2"
               alt="MulaiDariNol Logo"
               className="h-10 w-auto hidden dark:block transition-all"
             />

@@ -42,12 +42,12 @@ export default async function CMSLayout({ children }: CMSLayoutProps) {
           <div className="h-14 border-b border-border flex items-center px-6 justify-between">
             <Link href="/" className="flex items-center gap-2">
               <img
-                src="/MulaiDariNol.svg"
+                src="/MulaiDariNol.svg?v=2"
                 alt="MulaiDariNol Logo"
                 className="h-7 w-auto dark:hidden"
               />
               <img
-                src="/MulaiDariNolLight.svg"
+                src="/MulaiDariNolLight.svg?v=2"
                 alt="MulaiDariNol Logo"
                 className="h-7 w-auto hidden dark:block"
               />

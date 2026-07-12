@@ -113,12 +113,12 @@ export default function LoginPage() {
         <div className="flex flex-col items-center text-center">
           <Link href="/" className="flex items-center gap-2 mb-6">
             <img
-              src="/MulaiDariNol.svg"
+              src="/MulaiDariNol.svg?v=2"
               alt="MulaiDariNol Logo"
               className="h-10 w-auto dark:hidden"
             />
             <img
-              src="/MulaiDariNolLight.svg"
+              src="/MulaiDariNolLight.svg?v=2"
               alt="MulaiDariNol Logo"
               className="h-10 w-auto hidden dark:block"
             />
