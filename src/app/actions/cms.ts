@@ -102,15 +102,18 @@ export async function saveRoadmap(roadmapData: {
   icon: string;
   color: string;
   isPublished: boolean;
+  visibility?: "published" | "draft" | "coming_soon";
   nodes: any[];
 }) {
   const session = await getCmsSession();
   await dbConnect();
 
-  const { id, title, slug, description, icon, color, isPublished, nodes } = roadmapData;
+  const { id, title, slug, description, icon, color, isPublished, visibility, nodes } = roadmapData;
 
   try {
     let roadmap;
+    const finalVisibility = visibility || (isPublished ? "published" : "draft");
+    const finalIsPublished = finalVisibility === "published" || isPublished;
 
     if (id) {
       // Update
@@ -129,7 +132,8 @@ export async function saveRoadmap(roadmapData: {
       roadmap.description = description;
       roadmap.icon = icon;
       roadmap.color = color;
-      roadmap.isPublished = isPublished;
+      roadmap.isPublished = finalIsPublished;
+      roadmap.visibility = finalVisibility;
       roadmap.nodes = nodes;
       await roadmap.save();
     } else {
@@ -140,7 +144,8 @@ export async function saveRoadmap(roadmapData: {
         description,
         icon,
         color,
-        isPublished,
+        isPublished: finalIsPublished,
+        visibility: finalVisibility,
         creatorId: session.user.id,
         nodes,
       });

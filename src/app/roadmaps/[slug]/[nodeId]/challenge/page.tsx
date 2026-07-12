@@ -44,7 +44,10 @@ export default async function ChallengeFocusPage({ params }: PageProps) {
   await dbConnect();
 
   const roadmap = await Roadmap.findOne({ slug });
-  if (!roadmap) notFound();
+  const isAccessible =
+    roadmap &&
+    (roadmap.visibility === "published" || (!roadmap.visibility && roadmap.isPublished));
+  if (!isAccessible) notFound();
 
   const node = roadmap.nodes.find((n) => n.id === nodeId);
   if (!node) notFound();

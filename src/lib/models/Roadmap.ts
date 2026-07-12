@@ -16,6 +16,7 @@ export interface IRoadmap extends Document {
   icon: string; // Lucide icon name, e.g. "Layout"
   color: string; // Tailwind tint or hex string, e.g. "#6366f1"
   isPublished: boolean;
+  visibility: "published" | "draft" | "coming_soon";
   creatorId: mongoose.Types.ObjectId;
   nodes: IRoadmapNode[];
   createdAt: Date;
@@ -43,6 +44,11 @@ const RoadmapSchema = new Schema<IRoadmap>(
     icon: { type: String, default: "Compass" },
     color: { type: String, default: "#6366f1" },
     isPublished: { type: Boolean, default: false },
+    visibility: {
+      type: String,
+      enum: ["published", "draft", "coming_soon"],
+      default: "draft",
+    },
     creatorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     nodes: [RoadmapNodeSchema],
   },

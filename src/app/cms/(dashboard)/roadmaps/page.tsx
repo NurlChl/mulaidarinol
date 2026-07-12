@@ -27,6 +27,7 @@ export default async function CMSRoadmapsPage() {
     icon: r.icon,
     color: r.color,
     isPublished: r.isPublished,
+    visibility: r.visibility || (r.isPublished ? "published" : "draft"),
     nodes: r.nodes.map((node: any) => ({
       id: node.id,
       label: node.label,

@@ -24,6 +24,7 @@ interface RoadmapData {
   icon: string;
   color: string;
   isPublished: boolean;
+  visibility?: "published" | "draft" | "coming_soon";
   nodes: NodeData[];
 }
 
@@ -54,6 +55,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
   const [icon, setIcon] = useState("Compass");
   const [color, setColor] = useState("#6366f1");
   const [isPublished, setIsPublished] = useState(false);
+  const [visibility, setVisibility] = useState<"published" | "draft" | "coming_soon" | undefined>("draft");
   const [nodes, setNodes] = useState<NodeData[]>([]);
 
   // Node form state
@@ -74,6 +76,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
       icon: "Compass",
       color: "#6366f1",
       isPublished: false,
+      visibility: "draft",
       nodes: [],
     });
     setTitle("");
@@ -82,6 +85,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
     setIcon("Compass");
     setColor("#6366f1");
     setIsPublished(false);
+    setVisibility("draft");
     setNodes([]);
     setEditingNodeId(null);
   };
@@ -94,6 +98,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
     setIcon(roadmap.icon);
     setColor(roadmap.color);
     setIsPublished(roadmap.isPublished);
+    setVisibility(roadmap.visibility || (roadmap.isPublished ? "published" : "draft"));
     setNodes(roadmap.nodes || []);
     setEditingNodeId(null);
   };
@@ -364,6 +369,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
         icon,
         color,
         isPublished,
+        visibility,
         nodes,
       });
 
@@ -377,6 +383,7 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
           icon,
           color,
           isPublished,
+          visibility,
           nodes,
         };
 
@@ -502,12 +509,14 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
                       <span>•</span>
                       <span
                         className={`px-2 py-0.5 rounded font-bold uppercase ${
-                          r.isPublished
-                            ? "bg-emerald-500/10 text-emerald-500"
+                          r.visibility === "published" || (r.isPublished && !r.visibility)
+                            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                            : r.visibility === "coming_soon"
+                            ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
                             : "bg-muted text-muted-foreground border border-border"
                         }`}
                       >
-                        {r.isPublished ? "Published" : "Draft"}
+                        {r.visibility === "published" || (r.isPublished && !r.visibility) ? "Published" : r.visibility === "coming_soon" ? "Coming Soon" : "Draft"}
                       </span>
                     </div>
                   </div>
@@ -611,17 +620,23 @@ export function CmsRoadmapManager({ initialRoadmaps }: CmsRoadmapManagerProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 py-2">
-                <input
-                  type="checkbox"
-                  id="published"
-                  checked={isPublished}
-                  onChange={(e) => setIsPublished(e.target.checked)}
-                  className="rounded border-border text-primary focus:ring-primary cursor-pointer h-4 w-4"
-                />
-                <label htmlFor="published" className="font-semibold text-foreground cursor-pointer">
-                  Publish untuk Publik
+              <div className="py-2">
+                <label className="block font-semibold text-muted-foreground uppercase mb-1">
+                  Status Visibilitas
                 </label>
+                <select
+                  value={visibility || "draft"}
+                  onChange={(e) => {
+                    const val = e.target.value as "published" | "draft" | "coming_soon";
+                    setVisibility(val);
+                    setIsPublished(val === "published");
+                  }}
+                  className="w-full px-3 py-2 bg-background border border-border rounded text-xs text-foreground focus:outline-none focus:border-primary cursor-pointer"
+                >
+                  <option value="draft">Draft (Hanya Muncul di CMS)</option>
+                  <option value="coming_soon">Coming Soon (Tampil di Beranda, Terkunci)</option>
+                  <option value="published">Published (Tampil di Beranda &amp; Bisa Diakses)</option>
+                </select>
               </div>
             </div>
 

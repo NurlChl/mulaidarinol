@@ -31,8 +31,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     await dbConnect();
-    // Query published roadmaps to build dynamic URLs
-    const roadmaps = await Roadmap.find({ isPublished: true }, "slug nodes updatedAt").lean();
+    // Query only fully published roadmaps for sitemap (not draft or coming_soon)
+    const roadmaps = await Roadmap.find(
+      {
+        $or: [
+          { visibility: "published" },
+          { isPublished: true, visibility: { $exists: false } }
+        ]
+      },
+      "slug nodes updatedAt"
+    ).lean();
 
     roadmaps.forEach((r: any) => {
       // Add main roadmap path

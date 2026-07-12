@@ -160,11 +160,13 @@ export default async function CMSDashboardPage() {
 
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                      r.isPublished
+                      r.visibility === "published" || (r.isPublished && !r.visibility)
                         ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                        : r.visibility === "coming_soon"
+                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
                         : "bg-muted text-muted-foreground border border-border"
                     }`}>
-                      {r.isPublished ? "Published" : "Draft"}
+                      {r.visibility === "published" || (r.isPublished && !r.visibility) ? "Published" : r.visibility === "coming_soon" ? "Coming Soon" : "Draft"}
                     </span>
                     
                     <Link

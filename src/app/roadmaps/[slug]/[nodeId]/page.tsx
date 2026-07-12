@@ -35,7 +35,11 @@ export default async function LearningConsolePage({ params }: PageProps) {
 
   // 1. Fetch roadmap
   const roadmap = await Roadmap.findOne({ slug });
-  if (!roadmap) {
+  const isAccessible =
+    roadmap &&
+    (roadmap.visibility === "published" || (!roadmap.visibility && roadmap.isPublished));
+
+  if (!isAccessible) {
     return notFound();
   }
 
