@@ -21,7 +21,12 @@ export function Navbar() {
               <img
                 src="/MulaiDariNol.svg"
                 alt="MulaiDariNol Logo"
-                className="h-8 w-auto dark:brightness-0 dark:invert transition-all"
+                className="h-8 w-auto dark:hidden transition-all"
+              />
+              <img
+                src="/MulaiDariNolLight.svg"
+                alt="MulaiDariNol Logo"
+                className="h-8 w-auto hidden dark:block transition-all"
               />
             </Link>
             

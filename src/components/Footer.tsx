@@ -10,7 +10,12 @@ export function Footer() {
             <img
               src="/MulaiDariNol.svg"
               alt="MulaiDariNol Logo"
-              className="h-7 w-auto dark:brightness-0 dark:invert"
+              className="h-7 w-auto dark:hidden"
+            />
+            <img
+              src="/MulaiDariNolLight.svg"
+              alt="MulaiDariNol Logo"
+              className="h-7 w-auto hidden dark:block"
             />
           </div>
 

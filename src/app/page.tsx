@@ -224,8 +224,8 @@ export default async function HomePage() {
           </h1>
 
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Akselerasi keahlian pemrograman Anda melalui peta jalan yang terstruktur. 
-            Pelajari konsep fundamental, uji pemahaman dengan kuis, dan praktik langsung dengan compiler & editor di browser Anda.
+            Mulai karir IT impian Anda dengan peta jalan belajar yang terstruktur rapi dari nol sampai siap kerja. 
+            Pelajari teori esensial, uji pemahaman lewat kuis interaktif, dan langsung praktek coding di browser Anda tanpa perlu instalasi tools yang rumit.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -336,25 +336,25 @@ export default async function HomePage() {
                 Sebagai Mitra Kontributor
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Kami percaya ilmu terbaik datang dari para praktisi aktif. Sebagai Partner di MulaiDariNol, 
-                Anda dapat merancang peta jalan belajar baru, memposting materi terstruktur, kuis ujian, 
-                dan latihan coding interaktif.
+                Kami percaya bahwa ilmu terbaik datang dari para praktisi aktif yang berpengalaman di industri. Sebagai Mentor / Partner di MulaiDariNol, 
+                Anda dapat berkontribusi menyusun peta jalan belajar yang realistis, membagikan modul materi yang terstruktur, kuis evaluasi, 
+                hingga tantangan coding interaktif untuk membantu ribuan talenta baru berkembang.
               </p>
               
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-1 h-5 w-5 shrink-0 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-xs">✓</div>
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Kelola Kurikulum Sendiri</h4>
-                    <p className="text-xs text-muted-foreground">Tulis materi secara langsung dengan markdown editor kaya fitur di dasbor CMS Anda.</p>
+                    <h4 className="text-sm font-semibold text-foreground">Kelola Kurikulum Karir Anda</h4>
+                    <p className="text-xs text-muted-foreground">Tulis dan susun modul pembelajaran secara langsung dengan editor visual interaktif kami yang mudah digunakan.</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start gap-3">
                   <div className="mt-1 h-5 w-5 shrink-0 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-xs">✓</div>
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Review & Kontrol Kualitas</h4>
-                    <p className="text-xs text-muted-foreground">Setiap materi dipublikasikan setelah melalui persetujuan cepat dari Admin untuk menjaga kerapian kurikulum.</p>
+                    <h4 className="text-sm font-semibold text-foreground">Kurasi & Standarisasi Industri</h4>
+                    <p className="text-xs text-muted-foreground">Setiap modul akan ditinjau bersama oleh tim kurator profesional kami untuk memastikan standar materi tetap tinggi, rapi, dan mudah dipahami oleh pemula.</p>
                   </div>
                 </div>
               </div>

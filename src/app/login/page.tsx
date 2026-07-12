@@ -112,10 +112,16 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6 z-10">
         <div className="flex flex-col items-center text-center">
           <Link href="/" className="flex items-center gap-2 mb-6">
-            <Compass className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold tracking-tight">
-              Dev<span className="text-primary">Roadmap</span>
-            </span>
+            <img
+              src="/MulaiDariNol.svg"
+              alt="MulaiDariNol Logo"
+              className="h-10 w-auto dark:hidden"
+            />
+            <img
+              src="/MulaiDariNolLight.svg"
+              alt="MulaiDariNol Logo"
+              className="h-10 w-auto hidden dark:block"
+            />
           </Link>
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
             Sign in to your account
