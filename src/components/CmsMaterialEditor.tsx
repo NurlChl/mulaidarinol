@@ -78,13 +78,27 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
   // Custom Prompt Modal State to fully replace native window.prompt()
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptTitle, setPromptTitle] = useState("");
-  const [promptFields, setPromptFields] = useState<Array<{ key: string; label: string; placeholder?: string; defaultValue?: string }>>([]);
+  const [promptFields, setPromptFields] = useState<Array<{
+    key: string;
+    label: string;
+    placeholder?: string;
+    defaultValue?: string;
+    type?: "text" | "select";
+    options?: Array<{ value: string; label: string }>;
+  }>>([]);
   const [promptValues, setPromptValues] = useState<Record<string, string>>({});
   const [promptSubmitHandler, setPromptSubmitHandler] = useState<((values: Record<string, string>) => void) | null>(null);
 
   const openCustomPrompt = (
     title: string,
-    fields: Array<{ key: string; label: string; placeholder?: string; defaultValue?: string }>,
+    fields: Array<{
+      key: string;
+      label: string;
+      placeholder?: string;
+      defaultValue?: string;
+      type?: "text" | "select";
+      options?: Array<{ value: string; label: string }>;
+    }>,
     onSubmit: (values: Record<string, string>) => void
   ) => {
     setPromptTitle(title);
@@ -120,12 +134,16 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
     if (!ta) return;
     ta.focus();
     ta.setSelectionRange(offset, offset);
-    // Scroll the textarea so the cursor line is visible
+    
+    // We want the clicked line to be centered in the textarea's visible height
     const textBefore = (ta.value || "").substring(0, offset);
     const lineCount = textBefore.split("\n").length;
     const style = window.getComputedStyle(ta);
     const lineHeight = parseFloat(style.lineHeight) || 20;
-    ta.scrollTop = Math.max(0, (lineCount - 4) * lineHeight);
+    
+    const visibleHeight = ta.clientHeight;
+    const targetScrollTop = (lineCount - 1) * lineHeight - (visibleHeight / 2);
+    ta.scrollTop = Math.max(0, targetScrollTop);
   };
 
   const selectedRoadmap = roadmaps.find((r) => r._id === selectedRoadmapId);
@@ -192,6 +210,69 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
       setContent(`# ${node ? node.label : ""}\n\nTulis isi materi pembelajaran di sini...`);
     }
   }, [selectedRoadmapId, selectedNodeId]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Detect Ctrl / Cmd
+    const isMod = e.ctrlKey || e.metaKey;
+    if (!isMod) return;
+
+    // Mod + B -> Bold
+    if (e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      insertMarkdown("**", "**");
+    }
+    // Mod + I -> Italic
+    else if (e.key.toLowerCase() === "i") {
+      e.preventDefault();
+      insertMarkdown("*", "*");
+    }
+    // Mod + D -> Inline Code
+    else if (e.key.toLowerCase() === "d" || e.key === "`") {
+      e.preventDefault();
+      insertMarkdown("`", "`");
+    }
+    // Mod + K -> Link
+    else if (e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      insertLinkPrompt();
+    }
+    // Mod + Shift + L -> Bullet List
+    else if (e.shiftKey && e.key.toLowerCase() === "l") {
+      e.preventDefault();
+      insertMarkdown("\n* ", "");
+    }
+    // Mod + Alt + 1 -> H1, etc.
+    else if (e.altKey && e.key >= "1" && e.key <= "6") {
+      e.preventDefault();
+      const level = parseInt(e.key, 10);
+      insertMarkdown("#".repeat(level) + " ", "");
+    }
+  };
+
+  const handleVisualKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const isMod = e.ctrlKey || e.metaKey;
+    if (!isMod) return;
+
+    // Mod + D -> Inline Code
+    if (e.key.toLowerCase() === "d" || e.key === "`") {
+      e.preventDefault();
+      const sel = window.getSelection();
+      const selected = sel && sel.toString() ? sel.toString() : "kode";
+      const codeHtml = `<code class="mx-0.5 rounded-md bg-primary/12 border border-primary/20 px-[5px] py-[2px] text-[13.5px] font-mono font-semibold text-primary">${selected}</code>`;
+      document.execCommand("insertHTML", false, codeHtml);
+      handleVisualEditorInput();
+    }
+    // Mod + K -> Link
+    else if (e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      insertLinkPrompt();
+    }
+    // Mod + Alt + 1 to 6 -> Headings
+    else if (e.altKey && e.key >= "1" && e.key <= "6") {
+      e.preventDefault();
+      executeHeaderCommand(`h${e.key}`);
+    }
+  };
 
   // Sync visual editor content editable innerHTML when activeTab changes to "visual"
   useEffect(() => {
@@ -695,7 +776,26 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
       openCustomPrompt(
         "Edit Bahasa Pemrograman",
         [
-          { key: "lang", label: "Bahasa", defaultValue: currentLang }
+          {
+            key: "lang",
+            label: "Pilih Bahasa",
+            defaultValue: currentLang,
+            type: "select",
+            options: [
+              { value: "javascript", label: "JavaScript" },
+              { value: "typescript", label: "TypeScript" },
+              { value: "html", label: "HTML" },
+              { value: "css", label: "CSS" },
+              { value: "jsx", label: "React JSX" },
+              { value: "tsx", label: "React TSX" },
+              { value: "env", label: ".env / Config" },
+              { value: "markdown", label: "Markdown" },
+              { value: "json", label: "JSON" },
+              { value: "text", label: "Plain Text (txt)" },
+              { value: "bash", label: "Bash / Terminal" },
+              { value: "python", label: "Python" },
+            ]
+          }
         ],
         (values) => {
           const newLang = values.lang;
@@ -743,30 +843,51 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
     handleVisualEditorInput();
   };
 
-  const insertCodeBlockWidgetPrompt = () => {
+  const insertCodeBlockPrompt = (isVisual: boolean) => {
     openCustomPrompt(
       "Buat Blok Kode Baru",
       [
-        { key: "lang", label: "Bahasa Pemrograman", defaultValue: "html", placeholder: "html, css, javascript, python" }
+        {
+          key: "lang",
+          label: "Pilih Bahasa Pemrograman",
+          defaultValue: "javascript",
+          type: "select",
+          options: [
+            { value: "javascript", label: "JavaScript" },
+            { value: "typescript", label: "TypeScript" },
+            { value: "html", label: "HTML" },
+            { value: "css", label: "CSS" },
+            { value: "jsx", label: "React JSX" },
+            { value: "tsx", label: "React TSX" },
+            { value: "env", label: ".env / Config" },
+            { value: "markdown", label: "Markdown" },
+            { value: "json", label: "JSON" },
+            { value: "text", label: "Plain Text (txt)" },
+            { value: "bash", label: "Bash / Terminal" },
+            { value: "python", label: "Python" },
+          ]
+        }
       ],
       (values) => {
-        const lang = values.lang || "html";
-        const initialCode = "/* Tulis kode program di sini */";
-
-        const html = `<div class="code-block-wrapper my-10 rounded-xl overflow-hidden border border-white/[0.07] shadow-2xl" contenteditable="false" data-widget="code-block">
-          <div class="flex items-center justify-between bg-[#1e1e2e] px-4 py-2.5 border-b border-white/6 select-none cursor-pointer">
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-[#ff5f57]" />
-              <span class="w-3 h-3 rounded-full bg-[#febc2e]" />
-              <span class="w-3 h-3 rounded-full bg-[#28c840]" />
+        const lang = values.lang || "javascript";
+        if (isVisual) {
+          const initialCode = "/* Tulis kode program di sini */";
+          const html = `<div class="code-block-wrapper my-10 rounded-xl overflow-hidden border border-white/[0.07] shadow-2xl" contenteditable="false" data-widget="code-block">
+            <div class="flex items-center justify-between bg-[#1e1e2e] px-4 py-2.5 border-b border-white/6 select-none cursor-pointer">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-[#ff5f57]" />
+                <span class="w-3 h-3 rounded-full bg-[#febc2e]" />
+                <span class="w-3 h-3 rounded-full bg-[#28c840]" />
+              </div>
+              <span class="text-[11px] font-bold tracking-widest uppercase text-white/25 font-mono select-none" data-lang-label="true">${lang}</span>
+              <span class="text-[10px] text-white/15 font-mono select-none">(Klik header untuk ubah bahasa)</span>
             </div>
-            <span class="text-[11px] font-bold tracking-widest uppercase text-white/25 font-mono select-none" data-lang-label="true">${lang}</span>
-            <span class="text-[10px] text-white/15 font-mono select-none">(Klik header untuk ubah bahasa)</span>
-          </div>
-          <pre style="margin: 0 !important; padding: 1.25rem 1.5rem !important; background: #1e1e2e !important; font-size: 13.5px !important; line-height: 1.8 !important; font-family: var(--font-mono, 'JetBrains Mono', monospace) !important; color: #fff !important;"><code contenteditable="true" data-code-content="true" data-lang="${lang}" style="font-family: inherit; color: inherit; outline: none; display: block; white-space: pre-wrap; background: transparent; border: none; padding: 0;">${initialCode}</code></pre>
-        </div><p><br></p>`;
-        
-        insertHtmlAtCursor(html);
+            <pre style="margin: 0 !important; padding: 1.25rem 1.5rem !important; background: #1e1e2e !important; font-size: 13.5px !important; line-height: 1.8 !important; font-family: var(--font-mono, 'JetBrains Mono', monospace) !important; color: #fff !important;"><code contenteditable="true" data-code-content="true" data-lang="${lang}" style="font-family: inherit; color: inherit; outline: none; display: block; white-space: pre-wrap; background: transparent; border: none; padding: 0;">${initialCode}</code></pre>
+          </div><p><br></p>`;
+          insertHtmlAtCursor(html);
+        } else {
+          insertMarkdown(`\`\`\`${lang}\n`, "\n\`\`\`");
+        }
       }
     );
   };
@@ -1040,7 +1161,7 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
       <button
         type="button"
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => isVisualMode ? insertCodeBlockWidgetPrompt() : insertMarkdown("```html\n", "\n```")}
+        onClick={() => insertCodeBlockPrompt(isVisualMode)}
         className="p-1.5 rounded hover:bg-muted cursor-pointer transition-colors"
         title="Blok Kode (VSCode style)"
       >
@@ -1219,9 +1340,13 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
     ol: ({ node, children }: any) => (
       <ol data-offset={node?.position?.start?.offset} className="my-7 ml-1 space-y-3.5 list-decimal list-inside rounded transition-colors">{children}</ol>
     ),
-    li: ({ node, children }: any) => (
+    li: ({ node, ordered, index, children }: any) => (
       <li data-offset={node?.position?.start?.offset} className="flex items-start gap-3.5 text-[20.5px] text-foreground/80 leading-[1.85] rounded transition-colors">
-        <span className="mt-[11px] shrink-0 w-2 h-2 rounded-full bg-primary/60" />
+        {ordered ? (
+          <span className="mt-[2px] shrink-0 font-bold text-primary font-mono text-[18px] select-none">{(index ?? 0) + 1}.</span>
+        ) : (
+          <span className="mt-[11px] shrink-0 w-2 h-2 rounded-full bg-primary/60" />
+        )}
         <span>{children}</span>
       </li>
     ),
@@ -1610,6 +1735,7 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
                     contentEditable
                     onInput={handleVisualEditorInput}
                     onClick={handleVisualEditorClick}
+                    onKeyDown={handleVisualKeyDown}
                     className="flex-1 p-8 pb-16 border border-border rounded-lg bg-background max-w-none material-reader focus:outline-none focus:ring-1 focus:ring-primary/30 overflow-y-auto"
                     style={{ minHeight: '500px', maxHeight: 'calc(100vh - 290px)' }}
                   />
@@ -1627,6 +1753,7 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
                       ref={textareaRef}
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
+                      onKeyDown={handleKeyDown}
                       className="flex-1 min-h-[380px] w-full p-4 bg-background border border-border rounded-lg font-mono text-[13px] focus:outline-none focus:border-primary resize-y leading-relaxed"
                       placeholder="# Tulis isi materi Anda menggunakan Markdown di sini..."
                     />
@@ -1661,6 +1788,7 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
                     ref={textareaRef}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="flex-1 min-h-[380px] w-full p-5 bg-background border border-border rounded-lg font-mono text-[13px] focus:outline-none focus:border-primary resize-y leading-relaxed"
                     placeholder="# Tulis isi materi Anda menggunakan Markdown di sini..."
                   />
@@ -1709,20 +1837,40 @@ export function CmsMaterialEditor({ roadmaps, materialsCache }: CmsMaterialEdito
                   <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
                     {field.label}
                   </label>
-                  <input
-                    type="text"
-                    value={promptValues[field.key] || ""}
-                    onChange={(e) =>
-                      setPromptValues((prev) => ({
-                        ...prev,
-                        [field.key]: e.target.value,
-                      }))
-                    }
-                    placeholder={field.placeholder}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-primary"
-                    required
-                    autoFocus
-                  />
+                  {field.type === "select" ? (
+                    <select
+                      value={promptValues[field.key] || ""}
+                      onChange={(e) =>
+                        setPromptValues((prev) => ({
+                          ...prev,
+                          [field.key]: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-primary cursor-pointer"
+                      required
+                    >
+                      {(field.options || []).map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-card text-foreground">
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={promptValues[field.key] || ""}
+                      onChange={(e) =>
+                        setPromptValues((prev) => ({
+                          ...prev,
+                          [field.key]: e.target.value,
+                        }))
+                      }
+                      placeholder={field.placeholder}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-primary"
+                      required
+                      autoFocus
+                    />
+                  )}
                 </div>
               ))}
             </div>

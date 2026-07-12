@@ -157,9 +157,13 @@ export function ConsoleWorkspace({
     ol: ({ children }: any) => (
       <ol className="my-7 ml-1 space-y-3.5 list-decimal list-inside">{children}</ol>
     ),
-    li: ({ children }: any) => (
+    li: ({ ordered, index, children }: any) => (
       <li className="flex items-start gap-3.5 text-[20.5px] text-foreground/80 leading-[1.85]">
-        <span className="mt-[11px] shrink-0 w-2 h-2 rounded-full bg-primary/60" />
+        {ordered ? (
+          <span className="mt-[2px] shrink-0 font-bold text-primary font-mono text-[18px] select-none">{(index ?? 0) + 1}.</span>
+        ) : (
+          <span className="mt-[11px] shrink-0 w-2 h-2 rounded-full bg-primary/60" />
+        )}
         <span>{children}</span>
       </li>
     ),
