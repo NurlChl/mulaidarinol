@@ -153,7 +153,12 @@ export default function CMSLoginPage() {
             <img
               src="/MulaiDariNol.svg"
               alt="MulaiDariNol Logo"
-              className="h-10 w-auto dark:brightness-0 dark:invert transition-all"
+              className="h-10 w-auto dark:hidden transition-all"
+            />
+            <img
+              src="/MulaiDariNolLight.svg"
+              alt="MulaiDariNol Logo"
+              className="h-10 w-auto hidden dark:block transition-all"
             />
           </Link>
           <span className="px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-primary/10 text-primary border border-primary/20 rounded mb-2">

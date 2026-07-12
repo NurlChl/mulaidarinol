@@ -44,7 +44,12 @@ export default async function CMSLayout({ children }: CMSLayoutProps) {
               <img
                 src="/MulaiDariNol.svg"
                 alt="MulaiDariNol Logo"
-                className="h-7 w-auto dark:brightness-0 dark:invert"
+                className="h-7 w-auto dark:hidden"
+              />
+              <img
+                src="/MulaiDariNolLight.svg"
+                alt="MulaiDariNol Logo"
+                className="h-7 w-auto hidden dark:block"
               />
             </Link>
             <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
