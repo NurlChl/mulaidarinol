@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Roadmap from "@/lib/models/Roadmap";
@@ -66,7 +66,12 @@ export default async function QuizFocusPage({ params }: PageProps) {
   if (!quizDoc) notFound();
 
   const session = await auth();
-  const isLoggedIn = !!session?.user;
+  if (!session || !session.user) {
+    const callbackUrl = `/roadmaps/${slug}/${nodeId}/quiz`;
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+  }
+
+  const isLoggedIn = true;
   let highestQuizScore: number | null = null;
   let lastQuizScore: number | null = null;
 

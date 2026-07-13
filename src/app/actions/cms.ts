@@ -432,6 +432,22 @@ export async function updateUserRole(userId: string, newRole: "user" | "partner"
       return { success: false, error: "User not found." };
     }
 
+    // Check if promoting to superadmin but one already exists
+    if (newRole === "superadmin" && user.role !== "superadmin") {
+      const superadminExists = await User.exists({ role: "superadmin" });
+      if (superadminExists) {
+        return { success: false, error: "Hanya diperbolehkan memiliki satu Superadmin di dalam sistem." };
+      }
+    }
+
+    // Check if demoting the only superadmin
+    if (user.role === "superadmin" && newRole !== "superadmin") {
+      const superadminCount = await User.countDocuments({ role: "superadmin" });
+      if (superadminCount <= 1) {
+        return { success: false, error: "Tidak dapat menurunkan peran satu-satunya Superadmin di dalam sistem." };
+      }
+    }
+
     user.role = newRole;
     await user.save();
 
@@ -459,6 +475,14 @@ export async function createNewAdmin(adminData: {
 
   if (!name || !email || !password) {
     return { success: false, error: "All fields are required." };
+  }
+
+  // Double check if attempting to create a superadmin when one already exists
+  if (role === "superadmin") {
+    const superadminExists = await User.exists({ role: "superadmin" });
+    if (superadminExists) {
+      return { success: false, error: "Hanya diperbolehkan memiliki satu Superadmin di dalam sistem." };
+    }
   }
 
   try {

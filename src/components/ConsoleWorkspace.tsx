@@ -18,10 +18,12 @@ import {
   ExternalLink,
   BookOpen,
   Trophy,
-  Code2
+  Code2,
+  LogIn
 } from "lucide-react";
 import CompletionButton from "./CompletionButton";
 import { ThemeToggle } from "./ThemeToggle";
+import { signIn } from "next-auth/react";
 
 interface Node {
   id: string;
@@ -56,6 +58,8 @@ export function ConsoleWorkspace({
   userRole
 }: ConsoleWorkspaceProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [redirectUrl, setRedirectUrl] = useState("");
 
   useEffect(() => {
     // Open sidebar by default on desktop screens (>= 768px)
@@ -455,7 +459,7 @@ export function ConsoleWorkspace({
             </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-3 space-y-5 px-2">
+          <div className="flex-1 overflow-y-auto pt-3 pb-24 space-y-5 px-2">
             {phases.map((phase) => {
               const children = getPhaseChildren(phase.id);
               if (children.length === 0) return null;
@@ -537,7 +541,7 @@ export function ConsoleWorkspace({
               </div>
 
               {/* Bottom Actions Layout — optimized spacing with clear bottom margin */}
-              <div className="border-t border-border pt-8 mt-12 mb-4">
+              <div className="border-t border-border pt-8 mt-12 mb-4 pb-16">
                 {/* Optional practice callout inside reader */}
                 {hasPractice && (
                   <div className="mb-10 rounded-2xl bg-primary/5 border border-primary/10 p-4 sm:p-5">
@@ -553,22 +557,48 @@ export function ConsoleWorkspace({
 
                     <div className={`mt-4 ${safeQuiz && safeChallenge ? 'grid gap-3 sm:grid-cols-2' : 'flex justify-center'}`}>
                       {safeQuiz && (
-                        <Link
-                          href={`/roadmaps/${roadmap.slug}/${currentNode.id}/quiz`}
-                          className={`flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-card px-4 py-3 text-xs font-bold text-foreground hover:bg-primary/10 transition-colors ${!safeChallenge ? 'w-full sm:max-w-xs' : ''}`}
-                        >
-                          <Trophy className="h-4 w-4 text-primary" />
-                          <span>Mulai Ujian Kuis</span>
-                        </Link>
+                        isLoggedIn ? (
+                          <Link
+                            href={`/roadmaps/${roadmap.slug}/${currentNode.id}/quiz`}
+                            className={`flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-card px-4 py-3 text-xs font-bold text-foreground hover:bg-primary/10 transition-colors ${!safeChallenge ? 'w-full sm:max-w-xs' : ''}`}
+                          >
+                            <Trophy className="h-4 w-4 text-primary" />
+                            <span>Mulai Ujian Kuis</span>
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setRedirectUrl(`/roadmaps/${roadmap.slug}/${currentNode.id}/quiz`);
+                              setShowLoginPrompt(true);
+                            }}
+                            className={`flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-card px-4 py-3 text-xs font-bold text-foreground hover:bg-primary/10 transition-colors cursor-pointer ${!safeChallenge ? 'w-full sm:max-w-xs' : ''}`}
+                          >
+                            <Trophy className="h-4 w-4 text-primary" />
+                            <span>Mulai Ujian Kuis</span>
+                          </button>
+                        )
                       )}
                       {safeChallenge && (
-                        <Link
-                          href={`/roadmaps/${roadmap.slug}/${currentNode.id}/challenge`}
-                          className={`flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-colors ${!safeQuiz ? 'w-full sm:max-w-xs' : ''}`}
-                        >
-                          <Code2 className="h-4 w-4" />
-                          <span>Buka Code Challenge</span>
-                        </Link>
+                        isLoggedIn ? (
+                          <Link
+                            href={`/roadmaps/${roadmap.slug}/${currentNode.id}/challenge`}
+                            className={`flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-colors ${!safeQuiz ? 'w-full sm:max-w-xs' : ''}`}
+                          >
+                            <Code2 className="h-4 w-4" />
+                            <span>Buka Code Challenge</span>
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setRedirectUrl(`/roadmaps/${roadmap.slug}/${currentNode.id}/challenge`);
+                              setShowLoginPrompt(true);
+                            }}
+                            className={`flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-colors cursor-pointer ${!safeQuiz ? 'w-full sm:max-w-xs' : ''}`}
+                          >
+                            <Code2 className="h-4 w-4" />
+                            <span>Buka Code Challenge</span>
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
@@ -612,6 +642,47 @@ export function ConsoleWorkspace({
         </div>
 
       </div>
+
+      {/* Login prompt modal for practice */}
+      {showLoginPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowLoginPrompt(false)}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 flex flex-col items-center text-center gap-5 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+              <CheckCircle2 className="h-8 w-8 text-primary" />
+            </div>
+
+            <div>
+              <h2 className="text-lg font-extrabold text-foreground mb-2">Login Diperlukan</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Untuk pengerjaan kuis pilihan ganda atau tantangan coding, kamu perlu login terlebih dahulu dengan akun Google agar progres nilaimu tersimpan.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 w-full">
+              <button
+                onClick={() => signIn("google", { callbackUrl: redirectUrl })}
+                className="w-full flex items-center justify-center gap-2.5 px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors cursor-pointer"
+              >
+                <LogIn className="h-4 w-4" />
+                Masuk dengan Google
+              </button>
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="w-full px-4 py-2.5 border border-border rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                Lanjut Membaca Dulu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

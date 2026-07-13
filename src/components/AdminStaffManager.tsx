@@ -186,14 +186,11 @@ export function AdminStaffManager({ users }: AdminStaffManagerProps) {
             <label className="block text-[10px] font-semibold text-muted-foreground uppercase mb-1">
               Pilih Peran (Role)
             </label>
-            <SearchableSelect
-              value={adminRole}
-              onChange={(val) => setAdminRole(val as any)}
-              options={[
-                { value: "admin", label: "Admin" },
-                { value: "superadmin", label: "Superadmin" },
-              ]}
-              placeholder="Pilih Peran"
+            <input
+              type="text"
+              readOnly
+              value="Admin"
+              className="w-full px-3 py-2 bg-muted/40 border border-border rounded-md text-xs text-muted-foreground cursor-not-allowed focus:outline-none"
             />
           </div>
 
@@ -257,13 +254,14 @@ export function AdminStaffManager({ users }: AdminStaffManagerProps) {
                   <td className="p-4 text-right">
                     {updatingId === user._id ? (
                       <Loader2 className="h-4 w-4 animate-spin inline-block text-primary" />
+                    ) : user.role === "superadmin" ? (
+                      <span className="text-muted-foreground text-[10px] italic">Owner Utama (Protected)</span>
                     ) : (
                       <SearchableSelect
                         value={user.role}
                         onChange={(val) => handleRoleChange(user._id, val as any)}
                         options={[
                           { value: "admin", label: "Admin" },
-                          { value: "superadmin", label: "Superadmin" },
                           { value: "partner", label: "Demote to Partner" },
                           { value: "user", label: "Demote to Learner" },
                         ]}

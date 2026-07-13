@@ -16,7 +16,8 @@ import {
   LogOut,
   ChevronRight,
   Shield,
-  Settings
+  Settings,
+  FileText
 } from "lucide-react";
 
 interface CMSLayoutProps {
@@ -91,6 +92,14 @@ export default async function CMSLayout({ children }: CMSLayoutProps) {
             >
               <Trophy className="h-4 w-4 shrink-0" />
               <span>Quizzes & Challenges</span>
+            </Link>
+
+            <Link
+              href="/cms/articles"
+              className="flex items-center gap-3 px-3 py-2 rounded text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+            >
+              <FileText className="h-4 w-4 shrink-0" />
+              <span>Manage Articles (SEO)</span>
             </Link>
 
             {/* Admin and Superadmin Only Links */}

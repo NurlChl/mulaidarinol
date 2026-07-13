@@ -131,3 +131,44 @@ SEED_API_KEY=MulaidarinolSeed2026
    - Reset password mengharuskan superadmin/admin mengirim kode OTP 6-digit ke email terdaftar.
    - Kode OTP disimpan terenkripsi dengan masa kedaluwarsa otomatis (10 menit) menggunakan indeks waktu MongoDB TTL.
    - Mutasi data baru akan diaplikasikan di database hanya setelah pencocokan kode OTP berhasil.
+
+---
+
+## 6. Pemeliharaan Terakhir & Log Perubahan (Juli 2026)
+
+Berikut adalah log perubahan arsitektur dan sistem yang dilakukan untuk kebutuhan pemeliharaan developer manusia maupun AI selanjutnya:
+
+### A. Perbaikan NextAuth ClientFetchError
+- **Penyebab:** Penumpukan file cache Turbopack/Next.js dev di folder `.next/` yang tidak sinkron, menyebabkan server mengembalikan halaman HTML 404/redirect saat client memanggil endpoint JSON `/api/auth/session`.
+- **Solusi:** Penghapusan folder `.next` dan rebuild ulang cache secara bersih.
+- **Middleware Proteksi:** Mengganti nama file `src/proxy.ts` menjadi `src/middleware.ts` (standar Next.js) dengan konfigurasi `matcher: ["/cms/:path*"]` agar hanya memproteksi area admin `/cms/*` dan membiarkan rute API otentikasi berjalan bebas tanpa overhead middleware.
+
+### B. Implementasi RBAC Single-Superadmin Ketat
+- **Batasan Skema:** Sistem hanya mengizinkan maksimal **satu** Superadmin terdaftar di database.
+- **Server Action (`src/app/actions/cms.ts`):** 
+  - Validasi ditambahkan di `createNewAdmin` dan `updateUserRole` untuk memblokir penambahan/promosi superadmin baru jika satu akun superadmin sudah terdeteksi di database.
+  - Menghalangi akun Superadmin menurunkan perannya sendiri jika dia adalah satu-satunya superadmin di sistem (agar sistem tidak terkunci tanpa pengelola utama).
+- **UI Admin (`src/components/AdminStaffManager.tsx`):**
+  - Dropdown role di form pendaftaran admin dikunci hanya untuk "Admin".
+  - Tombol edit/ubah peran untuk akun berstatus `superadmin` dinonaktifkan di tabel manajemen admin (Protected Owner).
+
+### C. Pembuatan Engine & CMS Artikel (SEO & GEO Booster)
+- **Model database (`src/lib/models/Article.ts`):** Skema data `Article` dengan parameter penargetan SEO lokal Indonesia (`seoTitle`, `seoDescription`, `seoKeywords`).
+- **Server Actions (`src/app/actions/article.ts`):** Menangani operasi simpan (`saveArticle`), hapus (`deleteArticle`), ambil artikel CMS (`getCmsArticles`), ambil artikel publik terpaginasi dengan pencarian (`getArticles`), dan ambil detail artikel (`getArticleBySlug`).
+- **CMS Artikel UI:**
+  - Halaman List Artikel (`src/app/cms/(dashboard)/articles/page.tsx`).
+  - Halaman Editor Artikel (`src/app/cms/(dashboard)/articles/[id]/page.tsx`) dengan dukungan live markdown editor preview.
+- **Rute Publik Artikel:**
+  - Halaman Beranda Blog (`src/app/articles/page.tsx`) terpaginasi.
+  - Halaman Detail Blog (`src/app/articles/[slug]/page.tsx`) dengan render markdown.
+- **Alur Otentikasi Latihan**: Pengunjung tanpa login (tamu) yang mengakses halaman kuis pilihan ganda (`quiz/page.tsx`) atau tantangan kode (`challenge/page.tsx`) akan secara server-side langsung dialihkan ke `/login` dengan parameter `callbackUrl` kembali ke halaman latihan semula agar progres latihan tersimpan otomatis pasca login Google.
+- **Penyelarasan Spasi Visual (Padding)**: 
+  - Menambahkan `pb-16` pada container navigasi material console agar tombol "Selanjutnya/Sebelumnya" tidak menempel rapat di bagian bawah viewport.
+  - Menambahkan `pb-24` pada scrollable area daftar materi sidebar agar item paling bawah (seperti modul "Generative UI") tidak terpotong atau terhalang oleh tombol floating logo branding "N".
+
+### D. Optimasi SEO & GEO Indonesia
+- **Robots.txt (`src/app/robots.ts`):** Dibuat dinamis mengizinkan indexing seluruh rute publik dan memblokir crawl `/cms/*` & `/api/*`.
+- **Sitemap (`src/app/sitemap.ts`):** Menambahkan link artikel publik secara dinamis dengan indeks prioritas tinggi.
+- **JSON-LD Schema Markup:**
+  - Global: Skema `WebSite` & `Organization` di root layout (`src/app/layout.tsx`).
+  - Lokal/Artikel: Skema `BlogPosting` dan `Blog` di halaman artikel untuk rich snippets Google Search.

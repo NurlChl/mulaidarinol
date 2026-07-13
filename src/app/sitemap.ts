@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
 import dbConnect from "@/lib/db";
 import Roadmap from "@/lib/models/Roadmap";
+import Article from "@/lib/models/Article";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/articles`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    },
   ];
 
   try {
     await dbConnect();
+    
     // Query only fully published roadmaps for sitemap (not draft or coming_soon)
     const roadmaps = await Roadmap.find(
       {
@@ -63,6 +71,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         }
       });
     });
+
+    // Query published articles for sitemap
+    const articles = await Article.find({ status: "published" }, "slug updatedAt").lean();
+    articles.forEach((a: any) => {
+      routes.push({
+        url: `${baseUrl}/articles/${a.slug}`,
+        lastModified: a.updatedAt ? new Date(a.updatedAt) : new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.7,
+      });
+    });
+
   } catch (error) {
     console.error("Sitemap generation error:", error);
   }

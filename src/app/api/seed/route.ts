@@ -80,6 +80,7 @@ export async function GET(request: Request) {
       icon: "Code",
       color: "#6366f1", // Indigo
       isPublished: true,
+      visibility: "published",
       creatorId,
       nodes: [
         { id: "phase-1", label: "Fase 1: Foundation", type: "phase", x: 400, y: 50 },
@@ -108,7 +109,8 @@ export async function GET(request: Request) {
       description: "Pelajari riset pengguna, perancangan wireframe, gaya warna, auto-layout, hingga pembuatan design system di Figma.",
       icon: "Figma",
       color: "#ec4899", // Pink
-      isPublished: true,
+      isPublished: false,
+      visibility: "coming_soon",
       creatorId,
       nodes: [
         { id: "phase-1", label: "Fase 1: Konsep Desain", type: "phase", x: 400, y: 50 },
@@ -127,7 +129,8 @@ export async function GET(request: Request) {
       description: "Pelajari arsitektur tema WordPress, custom post types, Gutenberg blocks, hingga headless CMS menggunakan GraphQL.",
       icon: "Settings",
       color: "#21759b", // WordPress blue
-      isPublished: true,
+      isPublished: false,
+      visibility: "coming_soon",
       creatorId,
       nodes: [
         { id: "phase-1", label: "Fase 1: WP Dasar", type: "phase", x: 400, y: 50 },
@@ -145,7 +148,8 @@ export async function GET(request: Request) {
       description: "Bangun landing page interaktif dengan Framer. Kuasai transisi, layout reaktif, Framer CMS, dan SEO.",
       icon: "Compass",
       color: "#0055ff", // Framer Blue
-      isPublished: true,
+      isPublished: false,
+      visibility: "draft",
       creatorId,
       nodes: [
         { id: "phase-1", label: "Fase 1: Framer Canvas", type: "phase", x: 400, y: 50 },
@@ -161,7 +165,8 @@ export async function GET(request: Request) {
       description: "Desain halaman web responsif dengan struktur Box Model CSS asli. Kelola Webflow CMS dan interaksi rumit.",
       icon: "Layout",
       color: "#4353ff", // Webflow Blue
-      isPublished: true,
+      isPublished: false,
+      visibility: "coming_soon",
       creatorId,
       nodes: [
         { id: "phase-1", label: "Fase 1: Designer Interface", type: "phase", x: 400, y: 50 },
@@ -177,7 +182,8 @@ export async function GET(request: Request) {
       description: "Manfaatkan Wix Studio dan script Velo JavaScript untuk membuat aplikasi web kustom yang canggih.",
       icon: "Sparkles",
       color: "#ff007f", // Wix Pinkish
-      isPublished: true,
+      isPublished: false,
+      visibility: "coming_soon",
       creatorId,
       nodes: [
         { id: "phase-1", label: "Fase 1: Wix Studio", type: "phase", x: 400, y: 50 },
@@ -193,7 +199,8 @@ export async function GET(request: Request) {
       description: "Kuasai ekosistem e-commerce terbesar. Pelajari Liquid engine, kustomisasi tema, dan Shopify Storefront API.",
       icon: "ShoppingBag",
       color: "#96bf48", // Shopify Green
-      isPublished: true,
+      isPublished: false,
+      visibility: "draft",
       creatorId,
       nodes: [
         { id: "phase-1", label: "Fase 1: Tema Shopify", type: "phase", x: 400, y: 50 },
@@ -209,7 +216,8 @@ export async function GET(request: Request) {
       description: "Tingkatkan produktivitas coding hingga 10x lipat dengan Cursor, Windsurf, Claude Code, v0, dan Prompt Engineering.",
       icon: "Globe",
       color: "#10b981", // Emerald
-      isPublished: true,
+      isPublished: false,
+      visibility: "coming_soon",
       creatorId,
       nodes: [
         { id: "phase-1", label: "Fase 1: AI Tools", type: "phase", x: 400, y: 50 },

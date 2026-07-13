@@ -1,8 +1,7 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
-// Next.js 16 Proxy convention: named export proxy function
-export const proxy = auth((req: any) => {
+export default auth((req: any) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   
@@ -10,23 +9,23 @@ export const proxy = auth((req: any) => {
   const isCmsLoginRoute = nextUrl.pathname === "/cms/login";
   
   if (isCmsRoute && !isCmsLoginRoute) {
-    // If user is trying to access CMS pages but is not logged in, redirect to CMS portal login
+    // Redirect to CMS login if not logged in
     if (!isLoggedIn) {
       const loginUrl = new URL("/cms/login", nextUrl);
       loginUrl.searchParams.set("callbackUrl", nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
     }
     
-    // Check role: must be partner, admin, or superadmin
+    // Role check: must be partner, admin, or superadmin
     const userRole = req.auth?.user?.role;
     if (userRole === "user") {
       // Direct unauthorized public users back to home
       return NextResponse.redirect(new URL("/", nextUrl));
     }
   }
+  return NextResponse.next();
 });
 
-// Configure matchers for the proxy
 export const config = {
   matcher: [
     "/cms/:path*",

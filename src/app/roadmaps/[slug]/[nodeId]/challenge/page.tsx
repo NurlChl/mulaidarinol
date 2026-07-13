@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Code2 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
@@ -60,6 +60,11 @@ export default async function ChallengeFocusPage({ params }: PageProps) {
   if (!challengeDoc) notFound();
 
   const session = await auth();
+  if (!session || !session.user) {
+    const callbackUrl = `/roadmaps/${slug}/${nodeId}/challenge`;
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+  }
+
   const safeChallenge = {
     _id: challengeDoc._id.toString(),
     title: challengeDoc.title,
@@ -102,7 +107,7 @@ export default async function ChallengeFocusPage({ params }: PageProps) {
           roadmapSlug={roadmap.slug}
           nodeId={nodeId}
           challenge={safeChallenge}
-          isLoggedIn={!!session?.user}
+          isLoggedIn={true}
         />
       </main>
     </div>
